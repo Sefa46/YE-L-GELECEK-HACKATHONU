@@ -46,7 +46,7 @@ Bu sayılar gerçek SWMM motorunun bu küçük model için ürettiği fiziksel s
 ## Test sonucu
 
 ```text
-28 passed
+30 passed
 ```
 
 Test paketi yerel Python 3.11 ortamında çalıştırılmıştır.
@@ -58,7 +58,7 @@ Test paketi yerel Python 3.11 ortamında çalıştırılmıştır.
 | Veri sözleşmeleri ve fixture yükleme | Çalışıyor | Pydantic doğrulaması |
 | Bağlı ağ ve çıkış erişimi | Çalışıyor | NetworkX, sentetik DAG |
 | Çevrimdışı yağış olayı | Çalışıyor | Sentetik fixture |
-| Görsel gözlem | Kısmi | 6 VHBD laboratuvar görüntüsü + yükleme + renk-bölge işaretleme + manuel doğrulama; öğrenilmiş model yok |
+| Görsel gözlem | Çalışıyor | 21 VHBD görüntüsü, 22 altyapı eşleşmesi, YOLO/MobileCLIP2 ve operatör doğrulaması |
 | Hidrolik etki | Çalışıyor | SWMM 5.2.4 küçük sentetik model + ayrı proxy fallback |
 | Risk ve müdahale faydası | Simülasyon | Ayrı indeksler |
 | Kombinasyon/sinerji hesabı | Çalışıyor | Senaryo karması + eylem kümesine göre bellek içi önbellek aktif |

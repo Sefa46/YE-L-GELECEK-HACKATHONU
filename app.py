@@ -12,6 +12,10 @@ from siper.actions import synergy_delta
 from siper.evaluation import compare_policies
 from siper.hydraulics import ProxyHydraulicModel
 from siper.network import network_diagnostics
+from siper.observations import (
+    link_assets_to_vision_samples,
+    obstruction_class_for_fraction,
+)
 from siper.optimizer import optimize_plan
 from siper.risk import asset_risk_scores, intervention_benefits
 from siper.schemas import ObservationClass, WorkOrderStatus
@@ -54,9 +58,33 @@ if st.sidebar.button("Canlı tahmini yenile", disabled=weather_mode != "Canlı O
     load_live_forecast.clear()
     st.rerun()
 
-assets = load_assets()
+base_assets = load_assets()
 actions = load_actions()
 teams = load_teams()
+vision_samples = load_vision_samples()
+asset_vision_links = link_assets_to_vision_samples(base_assets, vision_samples)
+if "asset_observations" not in st.session_state:
+    st.session_state.asset_observations = {
+        asset.id: {
+            "class": obstruction_class_for_fraction(
+                asset.blockage_visual_fraction
+            ).value,
+            "visual_fraction": asset.blockage_visual_fraction,
+            "sample_id": asset_vision_links[asset.id]["id"],
+            "image_bytes": None,
+        }
+        for asset in base_assets
+    }
+assets = [
+    asset.model_copy(
+        update={
+            "blockage_visual_fraction": st.session_state.asset_observations[
+                asset.id
+            ]["visual_fraction"]
+        }
+    )
+    for asset in base_assets
+]
 offline_event = load_weather()
 live_forecast = None
 live_forecast_error = None
@@ -68,7 +96,6 @@ if weather_mode == "Canlı Open-Meteo":
 
 live_event = forecast_to_weather_event(live_forecast) if live_forecast else None
 event = live_event or offline_event
-vision_samples = load_vision_samples()
 model = ProxyHydraulicModel(assets, event)
 baseline = model.run()
 local_timezone = ZoneInfo("Europe/Istanbul")
@@ -98,6 +125,13 @@ OBSERVATION_LABELS = {
     "partial": "Kısmi tıkalı",
     "severe": "Ciddi tıkalı",
     "unknown": "Belirsiz",
+}
+
+OBSERVATION_COLORS = {
+    "severe": "#dc2626",
+    "partial": "#eab308",
+    "unblocked": "#16a34a",
+    "unknown": "#64748b",
 }
 
 STATUS_LABELS = {
@@ -291,24 +325,26 @@ with tabs[1]:
     diagnostics = network_diagnostics(assets)
     map_risks = asset_risk_scores(assets, baseline.node_impact)
     maximum_risk = max(map_risks.values())
-    high_risk_ids = {
-        asset_id for asset_id, score in map_risks.items() if score / maximum_risk >= 0.6
-    }
-    blocked_ids = {
+    severe_ids = {
         asset.id
         for asset in assets
-        if asset.blockage_visual_fraction is not None and asset.blockage_visual_fraction >= 0.6
+        if st.session_state.asset_observations[asset.id]["class"] == "severe"
+    }
+    partial_ids = {
+        asset.id
+        for asset in assets
+        if st.session_state.asset_observations[asset.id]["class"] == "partial"
     }
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Düğüm", diagnostics["node_count"])
     c2.metric("Bağlantı", diagnostics["edge_count"])
-    c3.metric("Yüksek riskli nokta", len(high_risk_ids))
-    c4.metric("Belirgin tıkanıklık", len(blocked_ids))
+    c3.metric("Ciddi tıkalı", len(severe_ids))
+    c4.metric("Kısmi tıkalı", len(partial_ids))
 
     map_view = st.radio(
         "Harita görünümü",
-        ["Risk ve tıkanıklık", "Altyapı türleri"],
+        ["Tıkanıklık durumu", "Altyapı türleri"],
         horizontal=True,
     )
 
@@ -333,16 +369,17 @@ with tabs[1]:
         )
     )
 
-    if map_view == "Risk ve tıkanıklık":
+    if map_view == "Tıkanıklık durumu":
         hover_text = []
-        risk_labels = []
         for asset in assets:
             risk_ratio = map_risks[asset.id] / maximum_risk
             risk_label = "Yüksek" if risk_ratio >= 0.6 else "Orta" if risk_ratio >= 0.3 else "Düşük"
-            risk_labels.append(risk_label)
+            observation = st.session_state.asset_observations[asset.id]
+            observation_label = OBSERVATION_LABELS[observation["class"]]
+            linked_sample_id = observation["sample_id"]
             visual_fraction = (
-                f"%{asset.blockage_visual_fraction * 100:.0f}"
-                if asset.blockage_visual_fraction is not None
+                f"%{observation['visual_fraction'] * 100:.0f}"
+                if observation["visual_fraction"] is not None
                 else "Veri yok"
             )
             water_level = f"{asset.water_level_m:.2f} m" if asset.water_level_m is not None else "Veri yok"
@@ -352,6 +389,8 @@ with tabs[1]:
                 f"Kimlik: {asset.id}<br>"
                 f"Tür: {ASSET_STYLES[asset.type.value][0]}<br>"
                 f"Bölge: {asset.drainage_zone_id}<br>"
+                f"Görüntü durumu: {observation_label}<br>"
+                f"Görüntü kaydı: {linked_sample_id}<br>"
                 f"Risk seviyesi: {risk_label}<br>"
                 f"Risk puanı: {map_risks[asset.id]:.2f}<br>"
                 f"Görünür kapanma: {visual_fraction}<br>"
@@ -371,18 +410,28 @@ with tabs[1]:
                 hovertemplate="%{hovertext}<extra></extra>",
                 marker={
                     "size": [
-                        14 + 24 * (asset.blockage_visual_fraction or 0)
+                        18
+                        + 12
+                        * (
+                            1
+                            if st.session_state.asset_observations[asset.id]["class"]
+                            == "severe"
+                            else 0.5
+                            if st.session_state.asset_observations[asset.id]["class"]
+                            == "partial"
+                            else 0
+                        )
                         for asset in assets
                     ],
-                    "color": [map_risks[asset.id] for asset in assets],
-                    "colorscale": [[0, "#4f9bd8"], [0.5, "#f2c14e"], [1, "#c43d3d"]],
-                    "cmin": 0,
-                    "cmax": maximum_risk,
-                    "showscale": True,
-                    "colorbar": {"title": "Risk puanı"},
-                    "opacity": 0.92,
+                    "color": [
+                        OBSERVATION_COLORS[
+                            st.session_state.asset_observations[asset.id]["class"]
+                        ]
+                        for asset in assets
+                    ],
+                    "opacity": 0.96,
                 },
-                name="Risk noktaları",
+                name="Görüntü tıkanıklık durumu",
             )
         )
     else:
@@ -451,12 +500,49 @@ with tabs[1]:
             "bgcolor": "rgba(255,255,255,0.9)",
         },
     )
-    st.plotly_chart(map_figure, width="stretch", config={"displayModeBar": True, "scrollZoom": True})
-
-    if map_view == "Risk ve tıkanıklık":
+    if map_view == "Tıkanıklık durumu":
+        base_sizes = [
+            30
+            if st.session_state.asset_observations[asset.id]["class"] == "severe"
+            else 24
+            if st.session_state.asset_observations[asset.id]["class"] == "partial"
+            else 18
+            for asset in assets
+        ]
+        pulse_sizes = [size + 8 for size in base_sizes]
+        pulse_script = f"""
+        const graph = document.getElementById('{{plot_id}}');
+        let pulseOn = false;
+        window.setInterval(() => {{
+            pulseOn = !pulseOn;
+            Plotly.restyle(
+                graph,
+                {{
+                    'marker.size': [pulseOn ? {json.dumps(pulse_sizes)} : {json.dumps(base_sizes)}],
+                    'marker.opacity': pulseOn ? 0.58 : 0.98
+                }},
+                [1]
+            );
+        }}, 750);
+        """
+        st.html(
+            map_figure.to_html(
+                full_html=False,
+                include_plotlyjs="cdn",
+                config={"displayModeBar": True, "scrollZoom": True},
+                post_script=pulse_script,
+            ),
+            unsafe_allow_javascript=True,
+        )
         st.caption(
-            "Renk risk seviyesini gösterir: mavi düşük, sarı orta, kırmızı yüksek. "
-            "Nokta büyüklüğü görünür tıkanıklık oranına göre artar."
+            "Yanıp sönen durum işaretleri: kırmızı ciddi tıkalı, sarı kısmi tıkalı, "
+            "yeşil açık. Noktanın üzerine gelince bağlı görüntü kaydı ve risk bilgisi görünür."
+        )
+    else:
+        st.plotly_chart(
+            map_figure,
+            width="stretch",
+            config={"displayModeBar": True, "scrollZoom": True},
         )
 
     network_table = pd.DataFrame(
@@ -471,6 +557,12 @@ with tabs[1]:
                         if asset.blockage_visual_fraction is not None
                         else None
                     ),
+                    "Görüntü durumu": OBSERVATION_LABELS[
+                        st.session_state.asset_observations[asset.id]["class"]
+                    ],
+                    "Görüntü kaydı": st.session_state.asset_observations[
+                        asset.id
+                    ]["sample_id"],
                     "Risk seviyesi": (
                         "Yüksek"
                         if map_risks[asset.id] / maximum_risk >= 0.6
@@ -495,43 +587,37 @@ with tabs[1]:
 
 with tabs[2]:
     st.subheader("Gözlem & Yapay Zekâ Analiz Merkezi")
-    st.caption("Saha kameralarından ve ekiplerden gelen görseller taranarak tıkanıklık bölgeleri tespit edilir.")
+    st.caption(
+        "Her görüntü bir altyapı noktasına bağlıdır. Buradaki sonuç, "
+        "Drenaj Ağı haritasındaki aynı noktanın durumunu belirler."
+    )
 
-    # 1. ÖZET & UYARI ÇUBUĞU (Kırmızı / Sarı / Yeşil uyarı kartları)
-    flagged_samples = [s for s in vision_samples if s["dataset_class"] in {"severe", "partial"}]
-    severe_count = sum(1 for s in vision_samples if s["dataset_class"] == "severe")
-    partial_count = sum(1 for s in vision_samples if s["dataset_class"] == "partial")
-    unblocked_count = sum(1 for s in vision_samples if s["dataset_class"] == "unblocked")
+    observations = st.session_state.asset_observations
+    severe_count = sum(1 for item in observations.values() if item["class"] == "severe")
+    partial_count = sum(1 for item in observations.values() if item["class"] == "partial")
+    unblocked_count = sum(1 for item in observations.values() if item["class"] == "unblocked")
 
     stat_c1, stat_c2, stat_c3, stat_c4 = st.columns(4)
-    stat_c1.metric("Toplam Görsel Kaydı", len(vision_samples))
-    stat_c2.metric("🚨 Acil / Ciddi Tıkalı", severe_count)
-    stat_c3.metric("⚠️ Kısmi Tıkanma", partial_count)
-    stat_c4.metric("✅ Açık / Normal", unblocked_count)
+    stat_c1.metric("Görüntüye bağlı altyapı", len(assets))
+    stat_c2.metric("Ciddi tıkalı", severe_count)
+    stat_c3.metric("Kısmi tıkalı", partial_count)
+    stat_c4.metric("Açık / normal", unblocked_count)
 
-    if severe_count > 0:
-        st.error(
-            f"🚨 **KRİTİK UYARI:** {severe_count} noktada menfez/mazgal su girişinin ciddi derecede tıkandığı tespit edildi! "
-            "Taşkın riskini önlemek için acil müdahale ekibi yönlendirilmelidir."
-        )
+    if "observation_saved_message" in st.session_state:
+        st.success(st.session_state.pop("observation_saved_message"))
 
     # 2. SEÇİM VE YÜKLEME PANELİ
-    sample_map = {sample["id"]: sample for sample in vision_samples}
-    
     with st.container(border=True):
-        st.markdown("##### 🔍 İncelenecek Görüntüyü Seçin veya Yeni Fotoğraf Yükleyin")
+        st.markdown("##### İncelenecek altyapı noktasını seçin")
         c_sel, c_up = st.columns([1.3, 1])
         with c_sel:
-            def _format_sample_choice(item_id: str) -> str:
-                s = sample_map[item_id]
-                cls = s["dataset_class"]
-                icon = "🚨" if cls == "severe" else "⚠️" if cls == "partial" else "✅"
-                return f"{icon} {s['id']} · {s['name']} [{OBSERVATION_LABELS[cls]}]"
-
-            selected_sample_id = st.selectbox(
-                "Mevcut Saha Görseli",
-                list(sample_map),
-                format_func=_format_sample_choice,
+            selected_asset_id = st.selectbox(
+                "Altyapı noktası ve bağlı görüntü",
+                [asset.id for asset in assets],
+                format_func=lambda item_id: (
+                    f"{item_id} · {asset_map[item_id].name} · "
+                    f"{OBSERVATION_LABELS[observations[item_id]['class']]}"
+                ),
             )
         with c_up:
             uploaded_image = st.file_uploader(
@@ -540,16 +626,28 @@ with tabs[2]:
                 help="Saha ekibinden gelen yeni fotoğrafı yükleyip anında analiz ettirebilirsiniz.",
             )
 
-    selected_sample = sample_map[selected_sample_id]
+    selected_asset = asset_map[selected_asset_id]
+    selected_sample = asset_vision_links[selected_asset_id]
+    saved_image_bytes = observations[selected_asset_id].get("image_bytes")
     if uploaded_image is not None:
         image_bytes = uploaded_image.getvalue()
         image_source = image_bytes
         image_caption = f"Yüklenen: {uploaded_image.name}"
         dataset_class = None
+    elif saved_image_bytes:
+        image_source = saved_image_bytes
+        image_caption = (
+            f"{selected_asset.id} · {selected_asset.name} · "
+            f"{observations[selected_asset_id]['sample_id']}"
+        )
+        dataset_class = observations[selected_asset_id]["class"]
     else:
         image_source = project_root() / selected_sample["path"]
-        image_caption = f"{selected_sample['id']} · {selected_sample['name']}"
-        dataset_class = selected_sample["dataset_class"]
+        image_caption = (
+            f"{selected_asset.id} · {selected_asset.name} · "
+            f"{selected_sample['id']}"
+        )
+        dataset_class = observations[selected_asset_id]["class"]
 
     # AI Analizi çalıştır
     detection = mark_obstruction_regions(image_source)
@@ -606,41 +704,41 @@ with tabs[2]:
                 width="stretch",
             )
 
-    # 5. GÖRSEL AKIŞI / GALERİ (DÜZENLİ KARTLAR)
-    st.markdown("##### 📂 Tüm Saha Görüntüleri Arşivi")
-    gallery_cols = st.columns(len(vision_samples))
-    for col, sample in zip(gallery_cols, vision_samples):
-        cls = sample["dataset_class"]
-        icon = "🚨" if cls == "severe" else "⚠️" if cls == "partial" else "✅"
-        with col:
-            with st.container(border=True):
-                st.image(str(project_root() / sample["path"]), width="stretch")
-                st.caption(f"**{sample['id']}**\n\n{icon} {OBSERVATION_LABELS[cls]}")
+    # 5. ALTYAPI İLE EŞLEŞEN GÖRSEL ARŞİVİ
+    st.markdown("##### Altyapı noktaları ve bağlı görüntüleri")
+    for row_start in range(0, len(assets), 4):
+        gallery_cols = st.columns(4)
+        for col, asset in zip(gallery_cols, assets[row_start : row_start + 4]):
+            sample = asset_vision_links[asset.id]
+            observation = observations[asset.id]
+            with col:
+                with st.container(border=True):
+                    gallery_image = observation.get("image_bytes") or str(
+                        project_root() / sample["path"]
+                    )
+                    st.image(gallery_image, width="stretch")
+                    st.markdown(f"**{asset.id} · {asset.name}**")
+                    st.caption(
+                        f"{OBSERVATION_LABELS[observation['class']]} · "
+                        f"Görüntü: {observation['sample_id']}"
+                    )
 
     # 6. OPERATÖR DOĞRULAMA & ENTEGRASYON
     with st.expander("🛠️ Operatör Doğrulama ve Altyapı Kaydı", expanded=False):
-        inspection_assets = [
-            asset
-            for asset in assets
-            if asset.inspection_accessible
-            and asset.type.value in {"inlet", "grate", "culvert", "open_channel"}
-        ]
-        linked_asset_id = st.selectbox(
-            "Bağlanacak Altyapı Noktası",
-            [asset.id for asset in inspection_assets],
-            index=next(
-                (
-                    index
-                    for index, asset in enumerate(inspection_assets)
-                    if asset.id == "C1"
-                ),
-                0,
-            ),
-            format_func=lambda item: f"{item} · {asset_map[item].name} ({ASSET_STYLES[asset_map[item].type.value][0]})",
+        st.write(
+            f"**Kayıt hedefi:** {selected_asset.id} · {selected_asset.name} "
+            f"({ASSET_STYLES[selected_asset.type.value][0]})"
         )
         class_values = [item.value for item in ObservationClass]
         suggested_class = dataset_class or (
             "severe" if marked_percent >= 30 else "partial" if marked_percent >= 10 else "unblocked"
+        )
+        suggested_fraction = (
+            float(detection["marked_fraction"])
+            if uploaded_image is not None
+            else observations[selected_asset_id]["visual_fraction"]
+            if observations[selected_asset_id]["visual_fraction"] is not None
+            else float(detection["marked_fraction"])
         )
         label_col, fraction_col = st.columns(2)
         with label_col:
@@ -651,11 +749,21 @@ with tabs[2]:
                 format_func=lambda value: OBSERVATION_LABELS[value],
             )
         with fraction_col:
+            fraction_ranges = {
+                "unblocked": (0.0, 0.39),
+                "partial": (0.40, 0.69),
+                "severe": (0.70, 1.0),
+                "unknown": (0.0, 1.0),
+            }
+            fraction_min, fraction_max = fraction_ranges[label]
+            fraction_default = max(
+                fraction_min, min(fraction_max, suggested_fraction)
+            )
             fraction = st.slider(
                 "Görünür Kapanma Oranı",
-                0.0,
-                1.0,
-                min(1.0, float(detection["marked_fraction"])),
+                fraction_min,
+                fraction_max,
+                fraction_default,
                 0.01,
             )
         if st.button("Gözlemi Onayla ve Ağa Kaydet", type="primary"):
@@ -669,10 +777,24 @@ with tabs[2]:
                 ObservationClass(label),
                 fraction,
             )
-            st.success(
-                f"✅ {asset_map[linked_asset_id].name} için gözlem onaylandı: "
-                f"**{OBSERVATION_LABELS[result['class'].value]}** (Görünür Kapanma: %{fraction*100:.0f})"
+            st.session_state.asset_observations[selected_asset_id] = {
+                "class": result["class"].value,
+                "visual_fraction": fraction,
+                "sample_id": (
+                    uploaded_image.name
+                    if uploaded_image is not None
+                    else observations[selected_asset_id]["sample_id"]
+                ),
+                "image_bytes": (
+                    uploaded_image.getvalue() if uploaded_image is not None else saved_image_bytes
+                ),
+            }
+            st.session_state.observation_saved_message = (
+                f"{selected_asset.name} için gözlem kaydedildi: "
+                f"{OBSERVATION_LABELS[result['class'].value]} (%{fraction * 100:.0f}). "
+                "Drenaj Ağı haritası güncellendi."
             )
+            st.rerun()
         st.caption("Not: Görsel tıkanıklık oranı doğrudan hidrolik kapasiteye eşitlenmez; ağ modelinde hidrolik faktör olarak ayrıca hesaplanır.")
 
     st.caption(

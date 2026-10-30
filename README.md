@@ -38,8 +38,9 @@ saatlik tahminini alır. Tahmin `forecast`, çevrimdışı fixture ise
 `synthetic_scenario` kaynağıyla ayrı tutulur. API erişilemezse uygulama
 çevrimdışı senaryoya geri döner; canlı tahmin resmî MGM uyarısı olarak sunulmaz.
 
-- 10 bağlı varlık: mazgal, menfez, kolektör, açık kanal, depolama, pompa, boru ve çıkış.
-- CC BY 4.0 lisanslı VHBD kaynağından 6 laboratuvar görüntüsü, galeri, yeni görüntü yükleme ve tıkanıklık bölgesi işaretleme ekranı.
+- 22 bağlı varlık: mazgal, menfez, kolektör, açık kanal, depolama, pompa, boru ve çıkış.
+- CC BY 4.0 lisanslı VHBD kaynağından 21 görüntü; her altyapı noktasıyla eşleşen galeri ve harita durumu.
+- Ciddi, kısmi ve açık gözlemler için kırmızı, sarı ve yeşil yanıp sönen harita işaretleri.
 - Görünür kapanma ile hidrolik kapasiteyi ayrı tutan veri sözleşmesi.
 - Tekli faydaları körlemesine toplamayan kombinasyon simülasyonu.
 - Yetkinlik, ekipman, yol ve 120 dakika sınırına uyan iki ekipli plan.
@@ -53,8 +54,8 @@ saatlik tahminini alır. Tahmin `forecast`, çevrimdışı fixture ise
 |---|---|---|
 | Yağış olayı | Çevrimdışı deterministik fixture | `synthetic_scenario` |
 | Ağ ve sensörler | Sentetik şehir ağı | `synthetic_scenario` / `simulated_sensor` |
-| Görseller | AI ile üretilmiş demo fixture; manuel etiket | `synthetic_scenario` |
-| Görsel analiz | Renk-bölge tabanlı otomatik işaretleme + operatör doğrulaması | `heuristic_estimate` / `operator_input` |
+| Görseller | CC BY 4.0 VHBD açık veri alt kümesi | `open_dataset` |
+| Görsel analiz | YOLO segmentasyon + MobileCLIP2 + renk-bölge fallback + operatör doğrulaması | `open_dataset` / `operator_input` |
 | Ağ etkisi | Deterministik proxy indeks | `heuristic_estimate` |
 | Saha eylemleri | Yalnız dijital durum dönüşümü | `synthetic_scenario` |
 | SWMM / fiziksel m³ | Küçük sentetik model; saha kalibrasyonsuz | `hydraulic_simulation` |

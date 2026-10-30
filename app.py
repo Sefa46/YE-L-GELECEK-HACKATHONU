@@ -183,8 +183,19 @@ def priority_reason(asset) -> str:
     return "; ".join(reasons).capitalize() if reasons else "Ağ akışı üzerinde etkili bir bağlantı noktası."
 
 
-st.title("SİPER AI")
-st.caption("Sel İçin Proaktif Erken Risk Yönetimi — Yağış öncesi drenaj risk ve operasyon planlama sistemi")
+title_column, description_column = st.columns(
+    [1, 4],
+    gap="small",
+    vertical_alignment="center",
+    wrap=False,
+)
+with title_column:
+    st.title("SİPER AI")
+with description_column:
+    st.caption(
+        "Yapay Zekâ Destekli, Öngörülü Kentsel Yağmur Suyu ve "
+        "Taşkın Müdahale Yönetim Sistemi"
+    )
 
 tabs = st.tabs(
     [

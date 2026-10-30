@@ -198,6 +198,32 @@ def render_status_cards(items: list[tuple[str, str]]) -> None:
     st.html(f'<div class="status-grid">{cards}</div>')
 
 
+def render_observation_status_cards(
+    asset_count: int,
+    severe_count: int,
+    partial_count: int,
+    unblocked_count: int,
+) -> None:
+    cards = [
+        ("Görüntüye bağlı altyapı", str(asset_count), "neutral", ""),
+        ("Ciddi tıkalı", str(severe_count), "severe", "⚠"),
+        ("Kısmi tıkalı", str(partial_count), "partial", ""),
+        ("Açık / normal", str(unblocked_count), "unblocked", ""),
+    ]
+    card_html = "".join(
+        (
+            f'<div class="status-card observation-card observation-card--{tone}">'
+            f'<div class="status-card__label">{escape(label)}</div>'
+            f'<div class="status-card__value observation-card__value">'
+            f'{escape(value)}'
+            f'<span class="observation-card__icon" aria-label="Uyarı">{icon}</span>'
+            "</div></div>"
+        )
+        for label, value, tone, icon in cards
+    )
+    st.html(f'<div class="status-grid">{card_html}</div>')
+
+
 @st.fragment(run_every=0.8)
 def render_pulsing_drainage_map(
     figure: go.Figure, base_sizes: list[int]
@@ -298,6 +324,44 @@ st.html(
             font-weight: 650;
             line-height: 1.2;
             white-space: nowrap;
+        }
+
+        .observation-card {
+            border-left-width: 4px;
+        }
+
+        .observation-card--neutral {
+            border-left-color: #64748b;
+        }
+
+        .observation-card--severe {
+            border-left-color: #dc2626;
+        }
+
+        .observation-card--severe .observation-card__value {
+            color: #dc2626;
+        }
+
+        .observation-card--partial {
+            border-left-color: #d97706;
+        }
+
+        .observation-card--partial .observation-card__value {
+            color: #d97706;
+        }
+
+        .observation-card--unblocked {
+            border-left-color: #16a34a;
+        }
+
+        .observation-card--unblocked .observation-card__value {
+            color: #16a34a;
+        }
+
+        .observation-card__icon {
+            margin-left: 0.38rem;
+            font-size: 1.25rem;
+            vertical-align: 0.08rem;
         }
     </style>
     <h1 class="siper-title-line">
@@ -697,7 +761,7 @@ with tabs[1]:
     )
 
 with tabs[2]:
-    st.subheader("Gözlem & Yapay Zekâ Analiz Merkezi")
+    st.html('<h2 class="status-heading">Gözlem & Yapay Zekâ Analiz Merkezi</h2>')
     st.caption(
         "Her görüntü bir altyapı noktasına bağlıdır. Buradaki sonuç, "
         "Drenaj Ağı haritasındaki aynı noktanın durumunu belirler."
@@ -708,11 +772,12 @@ with tabs[2]:
     partial_count = sum(1 for item in observations.values() if item["class"] == "partial")
     unblocked_count = sum(1 for item in observations.values() if item["class"] == "unblocked")
 
-    stat_c1, stat_c2, stat_c3, stat_c4 = st.columns(4)
-    stat_c1.metric("Görüntüye bağlı altyapı", len(assets))
-    stat_c2.metric("Ciddi tıkalı", severe_count)
-    stat_c3.metric("Kısmi tıkalı", partial_count)
-    stat_c4.metric("Açık / normal", unblocked_count)
+    render_observation_status_cards(
+        len(assets),
+        severe_count,
+        partial_count,
+        unblocked_count,
+    )
 
     if "observation_saved_message" in st.session_state:
         st.success(st.session_state.pop("observation_saved_message"))

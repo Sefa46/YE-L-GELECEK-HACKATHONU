@@ -1,50 +1,170 @@
 [
   {
-    "id": "VHBD-B01",
-    "name": "Menfez kaydı 01",
-    "path": "data/fixtures/open_dataset/vhbd_blocked_01.png",
-    "dataset_class": "severe",
-    "sha256": "0c0488c73a0e58472cad056df1371ce0f9a614a206480147c23c10c1ab271b9f",
-    "original_filename": "vlcsnap-2020-04-09-15h50m20s506_box_0.png"
-  },
-  {
-    "id": "VHBD-B02",
-    "name": "Menfez kaydı 02",
-    "path": "data/fixtures/open_dataset/vhbd_blocked_02.png",
-    "dataset_class": "severe",
-    "sha256": "05c2f83728782ec0ec9a4c0998dda2b051d3ce367cea4c1399b2a31667b16331",
-    "original_filename": "vlcsnap-2020-04-13-12h10m38s532_box_0.png"
-  },
-  {
-    "id": "VHBD-P01",
-    "name": "Menfez kaydı 03",
-    "path": "data/fixtures/open_dataset/vhbd_partial_01.png",
-    "dataset_class": "partial",
-    "sha256": "6b889db43755ca42d3b2a98f978dc5a58600a9ede13dcd358cdfa71e88baf863",
-    "original_filename": "vlcsnap-2020-04-10-10h17m32s662_box_1.png"
-  },
-  {
-    "id": "VHBD-P02",
-    "name": "Menfez kaydı 04",
-    "path": "data/fixtures/open_dataset/vhbd_partial_02.png",
-    "dataset_class": "partial",
-    "sha256": "c3ace199cffb2a688958270aef509a9b36eefbe3b61d65489fba4ab2327e045f",
-    "original_filename": "WIN_20200330_11_44_57_Pro_box_0.png"
-  },
-  {
     "id": "VHBD-C01",
-    "name": "Menfez kaydı 05",
+    "name": "Menfez Test Kaydı C01",
     "path": "data/fixtures/open_dataset/vhbd_clear_01.png",
+    "dataset_class": "unblocked",
+    "sha256": "d13f530c4a7e8dbdf808997123329bb7a4f21d04c3f910df33b75faccc14438e",
+    "original_filename": "vlcsnap-2020-04-09-15h19m13s381_box_0.png"
+  },
+  {
+    "id": "VHBD-C02",
+    "name": "Menfez Test Kaydı C02",
+    "path": "data/fixtures/open_dataset/vhbd_clear_02.png",
     "dataset_class": "unblocked",
     "sha256": "4790965a300487e179e0d7d56366a3334dc49e7a28bdcc20a3e461367df61cd1",
     "original_filename": "vlcsnap-2020-04-10-10h08m07s794_box_0.png"
   },
   {
-    "id": "VHBD-C02",
-    "name": "Menfez kaydı 06",
-    "path": "data/fixtures/open_dataset/vhbd_clear_02.png",
+    "id": "VHBD-C03",
+    "name": "Menfez Test Kaydı C03",
+    "path": "data/fixtures/open_dataset/vhbd_clear_03.png",
     "dataset_class": "unblocked",
-    "sha256": "35967143f895959149826da53a1743bb36a3ab9e8a35b8f548b81906ccd72c79",
-    "original_filename": "WIN_20200330_10_07_58_Pro_box_0.png"
+    "sha256": "fb8fd7ad80bcdc444b770a4d9add987aa0e3d58f8c83e771408d9a5269237868",
+    "original_filename": "vlcsnap-2020-04-10-10h18m35s273_box_1.png"
+  },
+  {
+    "id": "VHBD-C04",
+    "name": "Menfez Test Kaydı C04",
+    "path": "data/fixtures/open_dataset/vhbd_clear_04.png",
+    "dataset_class": "unblocked",
+    "sha256": "07241f65e31f726457aa2c6f7e819458d070fa487b03cc601c791c55790f0fff",
+    "original_filename": "vlcsnap-2020-04-13-10h56m53s806_box_0.png"
+  },
+  {
+    "id": "VHBD-C05",
+    "name": "Menfez Test Kaydı C05",
+    "path": "data/fixtures/open_dataset/vhbd_clear_05.png",
+    "dataset_class": "unblocked",
+    "sha256": "afa91a2ba997d01caf7a395e69a5eb5c07ab7fb5fe0105fb8fe61389025baa99",
+    "original_filename": "vlcsnap-2020-04-13-11h24m14s974_box_0.png"
+  },
+  {
+    "id": "VHBD-C06",
+    "name": "Menfez Test Kaydı C06",
+    "path": "data/fixtures/open_dataset/vhbd_clear_06.png",
+    "dataset_class": "unblocked",
+    "sha256": "d256402db8ada64dd67646283f4d4fca902ec5c9392ecd8eb0d766cee68b3067",
+    "original_filename": "vlcsnap-2020-04-13-12h25m03s759_box_0.png"
+  },
+  {
+    "id": "VHBD-C07",
+    "name": "Menfez Test Kaydı C07",
+    "path": "data/fixtures/open_dataset/vhbd_clear_07.png",
+    "dataset_class": "unblocked",
+    "sha256": "b8a1fdbfd5e3e8c003eb46ed4c166d234975e52f895b740baf1e0862ddd5679b",
+    "original_filename": "vlcsnap-2020-04-13-13h06m52s452_box_0.png"
+  },
+  {
+    "id": "VHBD-P01",
+    "name": "Menfez Test Kaydı P01",
+    "path": "data/fixtures/open_dataset/vhbd_partial_01.png",
+    "dataset_class": "partial",
+    "sha256": "8fd3c8d0ec802ce95f01b9b63fdfaefd7dd9cb526577a9c3301868e34175c280",
+    "original_filename": "vlcsnap-2020-04-10-10h00m48s920_box_0.png"
+  },
+  {
+    "id": "VHBD-P02",
+    "name": "Menfez Test Kaydı P02",
+    "path": "data/fixtures/open_dataset/vhbd_partial_02.png",
+    "dataset_class": "partial",
+    "sha256": "3e0bd46b1fc842c46188e3792eae8620c9b993f9fd2e1c104da81881b9371cf5",
+    "original_filename": "vlcsnap-2020-04-10-10h17m32s662_box_0.png"
+  },
+  {
+    "id": "VHBD-P03",
+    "name": "Menfez Test Kaydı P03",
+    "path": "data/fixtures/open_dataset/vhbd_partial_03.png",
+    "dataset_class": "partial",
+    "sha256": "01a9e4675f3f980bcdb348b69f43874bca85e4cde37863054bb416b7fa0b85da",
+    "original_filename": "vlcsnap-2020-04-13-10h45m15s112_box_0.png"
+  },
+  {
+    "id": "VHBD-P04",
+    "name": "Menfez Test Kaydı P04",
+    "path": "data/fixtures/open_dataset/vhbd_partial_04.png",
+    "dataset_class": "partial",
+    "sha256": "3d353725111ea5360d8eb4671f2620dd521a15559388994c20f2ae7cbfee8733",
+    "original_filename": "vlcsnap-2020-04-13-11h03m15s772_box_0.png"
+  },
+  {
+    "id": "VHBD-P05",
+    "name": "Menfez Test Kaydı P05",
+    "path": "data/fixtures/open_dataset/vhbd_partial_05.png",
+    "dataset_class": "partial",
+    "sha256": "db9e0effd35928e0d8f3c6c53bada54bc86d65a1b4a830beaaf741997d9ff69d",
+    "original_filename": "vlcsnap-2020-04-13-11h27m03s046_box_0.png"
+  },
+  {
+    "id": "VHBD-P06",
+    "name": "Menfez Test Kaydı P06",
+    "path": "data/fixtures/open_dataset/vhbd_partial_06.png",
+    "dataset_class": "partial",
+    "sha256": "3df9421439fb9b112c63052f4971886a87db9449807e7166a2c516c3f6cc3b52",
+    "original_filename": "vlcsnap-2020-04-13-12h19m56s035_box_0.png"
+  },
+  {
+    "id": "VHBD-P07",
+    "name": "Menfez Test Kaydı P07",
+    "path": "data/fixtures/open_dataset/vhbd_partial_07.png",
+    "dataset_class": "partial",
+    "sha256": "fb03e3b6eb97a2bb3af1c7c54b934fe12fea2c3c01579d493926cd5cd9ee9efc",
+    "original_filename": "vlcsnap-2020-04-13-13h03m05s606_box_0.png"
+  },
+  {
+    "id": "VHBD-B01",
+    "name": "Menfez Test Kaydı B01",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_01.png",
+    "dataset_class": "severe",
+    "sha256": "f7864b2e18c571050dfc18ef9bc5df0f2e6b5db98c3e4c9dad960299718649ee",
+    "original_filename": "vlcsnap-2020-04-09-15h22m21s602_box_0.png"
+  },
+  {
+    "id": "VHBD-B02",
+    "name": "Menfez Test Kaydı B02",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_02.png",
+    "dataset_class": "severe",
+    "sha256": "0c0488c73a0e58472cad056df1371ce0f9a614a206480147c23c10c1ab271b9f",
+    "original_filename": "vlcsnap-2020-04-09-15h50m20s506_box_0.png"
+  },
+  {
+    "id": "VHBD-B03",
+    "name": "Menfez Test Kaydı B03",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_03.png",
+    "dataset_class": "severe",
+    "sha256": "73e8e9072ced284a78cc5faa877e682978d591cbc15c6e8b99a0b7aa9fcbdad7",
+    "original_filename": "vlcsnap-2020-04-13-10h47m21s574_box_1.png"
+  },
+  {
+    "id": "VHBD-B04",
+    "name": "Menfez Test Kaydı B04",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_04.png",
+    "dataset_class": "severe",
+    "sha256": "ecdc0bf53c9565237128be41f0bf6c571ed29909bb5f87c3b34d17b2935258b4",
+    "original_filename": "vlcsnap-2020-04-13-11h13m18s978_box_1.png"
+  },
+  {
+    "id": "VHBD-B05",
+    "name": "Menfez Test Kaydı B05",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_05.png",
+    "dataset_class": "severe",
+    "sha256": "8d7c374a9bfa90493af413b51839598572e65fa118db62859610cdc625e0f811",
+    "original_filename": "vlcsnap-2020-04-13-11h49m53s296_box_0.png"
+  },
+  {
+    "id": "VHBD-B06",
+    "name": "Menfez Test Kaydı B06",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_06.png",
+    "dataset_class": "severe",
+    "sha256": "a6ee7c509ac1f3e2110b79398f71786c62c39ea0822fbeebd305c3e00b5a147a",
+    "original_filename": "vlcsnap-2020-04-13-12h10m37s045_box_0.png"
+  },
+  {
+    "id": "VHBD-B07",
+    "name": "Menfez Test Kaydı B07",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_07.png",
+    "dataset_class": "severe",
+    "sha256": "f7a133fd01f57f86eaaffcfea93f23a623af81bceb1d465a4adb8dd90a9c5db1",
+    "original_filename": "vlcsnap-2020-04-13-13h06m35s282_box_0.png"
   }
 ]

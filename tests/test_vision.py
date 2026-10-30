@@ -37,7 +37,7 @@ def test_neutral_image_does_not_invent_obstruction(tmp_path):
 
 def test_open_dataset_sample_catalog_is_complete():
     samples = load_vision_samples()
-    assert len(samples) == 6
+    assert len(samples) >= 15
     assert {sample["dataset_class"] for sample in samples} == {
         "unblocked",
         "partial",

@@ -10,7 +10,7 @@
 
 ## 0:55–1:20 — Gözlem güveni
 
-`Gözlem & AI` sekmesinde görsel kaydı aç. Manuel sınıfı doğrula. Görünür kapanma ile hidrolik kapasitenin ayrı değerler olduğunu göster.
+`Gözlem & AI` sekmesinde gelen kamera görüntüsü ile işaretlenmiş tıkanıklık bölgesini yan yana göster. Ardından operatör kontrolünü aç ve görünür kapanma ile hidrolik kapasitenin ayrı değerler olduğunu anlat.
 
 ## 1:20–1:50 — Risk, fayda ve kombinasyon
 

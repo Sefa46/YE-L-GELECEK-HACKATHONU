@@ -16,7 +16,7 @@ from siper.optimizer import optimize_plan
 from siper.risk import asset_risk_scores, intervention_benefits
 from siper.schemas import ObservationClass, WorkOrderStatus
 from siper.storage import load_actions, load_assets, load_teams, load_weather, project_root
-from siper.vision import assess_obstruction
+from siper.vision import assess_obstruction, mark_obstruction_regions
 from siper.workflow import (
     create_work_orders,
     mark_completed,
@@ -399,36 +399,71 @@ with tabs[1]:
     )
 
 with tabs[2]:
-    st.subheader("Manuel doğrulamalı görsel gözlem")
+    st.subheader("Gelen görüntüler ve tıkanıklık işaretleri")
     visual_assets = [asset for asset in assets if asset.image_path]
     selected_asset_id = st.selectbox(
-        "Görsel kayıt",
+        "Kamera kaydı",
         [asset.id for asset in visual_assets],
         format_func=lambda item: asset_map[item].name,
     )
     selected_asset = asset_map[selected_asset_id]
-    left, right = st.columns([1.4, 1])
+    uploaded_image = st.file_uploader(
+        "Yeni görüntü ekle",
+        type=["jpg", "jpeg", "png"],
+        help="Yeni bir saha veya kamera görüntüsünü aynı ekranda inceleyebilirsiniz.",
+    )
+    if uploaded_image is not None:
+        image_bytes = uploaded_image.getvalue()
+        image_source = image_bytes
+        image_caption = uploaded_image.name
+    else:
+        image_source = project_root() / selected_asset.image_path
+        image_caption = selected_asset.name
+
+    detection = mark_obstruction_regions(image_source)
+    left, right = st.columns(2)
     with left:
-        st.image(str(project_root() / selected_asset.image_path), caption=selected_asset.name)
+        st.markdown("**Gelen görüntü**")
+        st.image(image_source, caption=image_caption, width="stretch")
     with right:
+        st.markdown("**Modelin işaretlediği tıkanıklıklar**")
+        st.image(
+            detection["annotated_image"],
+            caption=f"{detection['region_count']} tıkanıklık bölgesi işaretlendi",
+            width="stretch",
+        )
+
+    with st.expander("Operatör kontrolü ve kayıt"):
         class_values = [item.value for item in ObservationClass]
-        suggested_class = "severe" if (selected_asset.blockage_visual_fraction or 0) >= 0.75 else "partial"
-        label = st.selectbox(
-            "Operatör sınıfı",
-            class_values,
-            index=class_values.index(suggested_class),
-            format_func=lambda value: OBSERVATION_LABELS[value],
+        suggested_class = (
+            "severe" if (selected_asset.blockage_visual_fraction or 0) >= 0.75 else "partial"
         )
-        fraction = st.slider(
-            "Görünür kapanma oranı",
-            0.0,
-            1.0,
-            float(selected_asset.blockage_visual_fraction or 0),
-            0.01,
-        )
-        if st.button("Gözlemi doğrula"):
+        label_col, fraction_col = st.columns(2)
+        with label_col:
+            label = st.selectbox(
+                "Gözlem sonucu",
+                class_values,
+                index=class_values.index(suggested_class),
+                format_func=lambda value: OBSERVATION_LABELS[value],
+            )
+        with fraction_col:
+            fraction = st.slider(
+                "Görünür kapanma oranı",
+                0.0,
+                1.0,
+                float(selected_asset.blockage_visual_fraction or 0),
+                0.01,
+            )
+        if st.button("Gözlemi kaydet"):
+            verification_source = (
+                image_source
+                if uploaded_image is None
+                else None
+            )
             result = assess_obstruction(
-                str(project_root() / selected_asset.image_path), ObservationClass(label), fraction
+                str(verification_source) if verification_source else None,
+                ObservationClass(label),
+                fraction,
             )
             st.success(f"Kayıt tamamlandı: {OBSERVATION_LABELS[result['class'].value]}")
         st.caption("Görünür kapanma oranı ile kapasite katsayısı ayrı kaydedilir.")

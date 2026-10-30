@@ -34,7 +34,7 @@ python scripts/run_swmm_validation.py
 `Sentetik yağış → Kaynak etiketli gözlem → Bağlı drenaj ağı → SWMM doğrulaması + proxy karar modeli → Müdahale kombinasyonu → İki ekipli plan → İş emri → Yeni gözlemle doğrulama → Yeniden planlama`
 
 - 10 bağlı varlık: mazgal, menfez, kolektör, açık kanal, depolama, pompa, boru ve çıkış.
-- İki yapay üretilmiş, açıkça `synthetic_scenario` etiketli görsel fixture.
+- İki görsel fixture, yeni görüntü yükleme ve tıkanıklık bölgesi işaretleme ekranı.
 - Görünür kapanma ile hidrolik kapasiteyi ayrı tutan veri sözleşmesi.
 - Tekli faydaları körlemesine toplamayan kombinasyon simülasyonu.
 - Yetkinlik, ekipman, yol ve 120 dakika sınırına uyan iki ekipli plan.
@@ -49,7 +49,7 @@ python scripts/run_swmm_validation.py
 | Yağış olayı | Çevrimdışı deterministik fixture | `synthetic_scenario` |
 | Ağ ve sensörler | Sentetik şehir ağı | `synthetic_scenario` / `simulated_sensor` |
 | Görseller | AI ile üretilmiş demo fixture; manuel etiket | `synthetic_scenario` |
-| Görsel analiz | Manuel operatör doğrulaması; otomatik CV yok | `operator_input` |
+| Görsel analiz | Renk-bölge tabanlı otomatik işaretleme + operatör doğrulaması | `heuristic_estimate` / `operator_input` |
 | Ağ etkisi | Deterministik proxy indeks | `heuristic_estimate` |
 | Saha eylemleri | Yalnız dijital durum dönüşümü | `synthetic_scenario` |
 | SWMM / fiziksel m³ | Küçük sentetik model; saha kalibrasyonsuz | `hydraulic_simulation` |

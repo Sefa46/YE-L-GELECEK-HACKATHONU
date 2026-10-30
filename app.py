@@ -633,29 +633,36 @@ with tabs[2]:
         image_bytes = uploaded_image.getvalue()
         image_source = image_bytes
         image_caption = f"Yüklenen: {uploaded_image.name}"
-        dataset_class = None
     elif saved_image_bytes:
         image_source = saved_image_bytes
         image_caption = (
             f"{selected_asset.id} · {selected_asset.name} · "
             f"{observations[selected_asset_id]['sample_id']}"
         )
-        dataset_class = observations[selected_asset_id]["class"]
     else:
         image_source = project_root() / selected_sample["path"]
         image_caption = (
             f"{selected_asset.id} · {selected_asset.name} · "
             f"{selected_sample['id']}"
         )
-        dataset_class = observations[selected_asset_id]["class"]
 
     # AI Analizi çalıştır
     detection = mark_obstruction_regions(image_source)
     marked_percent = float(detection["marked_fraction"]) * 100
     
-    # Uyarı durumu belirleme
-    is_severe_alert = (dataset_class == "severe") or (marked_percent >= 30.0)
-    is_partial_alert = (dataset_class == "partial") or (10.0 <= marked_percent < 30.0)
+    # Modelin tek sınıf sonucunu belirleme
+    clip_scores = detection.get("clip_scores")
+    if clip_scores:
+        model_class = max(clip_scores, key=clip_scores.get)
+    elif marked_percent >= 30.0:
+        model_class = "severe"
+    elif marked_percent >= 10.0:
+        model_class = "partial"
+    else:
+        model_class = "unblocked"
+
+    is_severe_alert = model_class == "severe"
+    is_partial_alert = model_class == "partial"
 
     # 3. OKUNABİLİR ANALİZ ÖZETİ
     if is_severe_alert:
@@ -675,7 +682,7 @@ with tabs[2]:
                     "Görüntü kaydı": observations[selected_asset_id]["sample_id"]
                     if uploaded_image is None
                     else uploaded_image.name,
-                    "Güncel durum": status_text,
+                    "Model sonucu": status_text,
                     "İşaretlenen alan": marked_percent,
                     "Bulunan bölge": int(detection["region_count"]),
                 }
@@ -702,49 +709,16 @@ with tabs[2]:
             f"Kullanılan analiz: {detection.get('method', 'YOLOE-26n-seg + MobileCLIP2')}"
         )
 
-        clip_scores = detection.get("clip_scores")
-        if clip_scores:
-            st.markdown("**Model güven dağılımı**")
-            confidence_table = pd.DataFrame(
-                [
-                    {
-                        "Sınıf": "Açık / normal",
-                        "Güven": clip_scores.get("unblocked", 0) * 100,
-                    },
-                    {
-                        "Sınıf": "Kısmi tıkalı",
-                        "Güven": clip_scores.get("partial", 0) * 100,
-                    },
-                    {
-                        "Sınıf": "Ciddi tıkalı",
-                        "Güven": clip_scores.get("severe", 0) * 100,
-                    },
-                ]
-            ).sort_values("Güven", ascending=False)
-            st.dataframe(
-                confidence_table,
-                width="stretch",
-                hide_index=True,
-                column_config={
-                    "Güven": st.column_config.ProgressColumn(
-                        "Model güveni (%)",
-                        min_value=0,
-                        max_value=100,
-                        format="%.1f%%",
-                    )
-                },
-            )
-
     if is_severe_alert:
         st.error(
-            "Ciddi tıkanıklık kaydı: yağış öncesi saha kontrolüne öncelik verin."
+            "Model ciddi tıkanıklık belirledi: yağış öncesi saha kontrolüne öncelik verin."
         )
     elif is_partial_alert:
         st.warning(
-            "Kısmi birikme kaydı: yağış öncesi kontrol planına ekleyin."
+            "Model kısmi tıkanıklık belirledi: yağış öncesi kontrol planına ekleyin."
         )
     else:
-        st.success("Su giriş kesiti açık görünüyor; rutin izleme yeterli.")
+        st.success("Model su giriş kesitini açık olarak sınıflandırdı.")
 
     # 4. GÖRSEL KARŞILAŞTIRMA (ÖNCE/SONRA)
     vis_left, vis_right = st.columns(2)
@@ -787,9 +761,7 @@ with tabs[2]:
             f"({ASSET_STYLES[selected_asset.type.value][0]})"
         )
         class_values = [item.value for item in ObservationClass]
-        suggested_class = dataset_class or (
-            "severe" if marked_percent >= 30 else "partial" if marked_percent >= 10 else "unblocked"
-        )
+        suggested_class = model_class
         suggested_fraction = (
             float(detection["marked_fraction"])
             if uploaded_image is not None

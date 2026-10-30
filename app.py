@@ -186,38 +186,31 @@ def priority_reason(asset) -> str:
 st.html(
     """
     <style>
-        .st-key-siper_header {
+        .siper-title-line {
             transform: translateY(-12px);
+            margin: 0 0 1rem 0;
+            font-size: 2.75rem;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.005em;
+            white-space: nowrap;
         }
 
-        .st-key-siper_header [data-testid="stHorizontalBlock"] {
-            align-items: baseline !important;
-        }
-
-        .st-key-siper_header [data-testid="stColumn"] {
-            align-self: baseline !important;
-        }
-
-        .st-key-siper_header [data-testid="stColumn"]:nth-child(2) {
-            transform: translateY(9px);
+        .siper-title-line__description {
+            margin-left: 0.55rem;
+            font-size: 0.875rem;
+            font-weight: 400;
+            letter-spacing: normal;
+            opacity: 0.6;
+            vertical-align: baseline;
         }
     </style>
+    <h1 class="siper-title-line">
+        SİPER AI
+        <span class="siper-title-line__description">Yapay Zekâ Destekli, Öngörülü Kentsel Yağmur Suyu ve Taşkın Müdahale Yönetim Sistemi</span>
+    </h1>
     """
 )
-with st.container(key="siper_header"):
-    title_column, description_column = st.columns(
-        [1, 5],
-        gap=None,
-        vertical_alignment="bottom",
-        wrap=False,
-    )
-    with title_column:
-        st.title("SİPER AI")
-    with description_column:
-        st.caption(
-            "Yapay Zekâ Destekli, Öngörülü Kentsel Yağmur Suyu ve "
-            "Taşkın Müdahale Yönetim Sistemi"
-        )
 
 tabs = st.tabs(
     [

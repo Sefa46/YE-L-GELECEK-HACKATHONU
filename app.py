@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import time
 from datetime import datetime, timedelta
 from html import escape
 from zoneinfo import ZoneInfo
@@ -129,6 +128,13 @@ OBSERVATION_LABELS = {
     "unknown": "Belirsiz",
 }
 
+OBSERVATION_SELECT_LABELS = {
+    "severe": "🔴 Ciddi tıkalı",
+    "partial": "🟠 Kısmi tıkalı",
+    "unblocked": "🟢 Açık / normal",
+    "unknown": "⚪ Belirsiz",
+}
+
 OBSERVATION_COLORS = {
     "severe": "#dc2626",
     "partial": "#eab308",
@@ -224,21 +230,36 @@ def render_observation_status_cards(
     st.html(f'<div class="status-grid">{card_html}</div>')
 
 
-@st.fragment(run_every=0.8)
 def render_pulsing_drainage_map(
     figure: go.Figure, base_sizes: list[int]
 ) -> None:
-    animated_figure = go.Figure(figure)
-    pulse_on = int(time.time() / 0.8) % 2 == 0
-    animated_figure.data[1].marker.size = [
-        size + 8 if pulse_on else size for size in base_sizes
-    ]
-    animated_figure.data[1].marker.opacity = 0.56 if pulse_on else 0.98
-    st.plotly_chart(
-        animated_figure,
+    pulse_sizes = [size + 8 for size in base_sizes]
+    pulse_script = f"""
+    const graph = document.getElementById('{{plot_id}}');
+    let pulseOn = false;
+    window.setInterval(() => {{
+        pulseOn = !pulseOn;
+        Plotly.restyle(
+            graph,
+            {{
+                'marker.size': [pulseOn ? {json.dumps(pulse_sizes)} : {json.dumps(base_sizes)}],
+                'marker.opacity': pulseOn ? 0.56 : 0.98
+            }},
+            [1]
+        );
+    }}, 800);
+    """
+    map_html = figure.to_html(
+        full_html=False,
+        include_plotlyjs=True,
+        config={"displayModeBar": True, "scrollZoom": True, "responsive": True},
+        post_script=pulse_script,
+    )
+    st.iframe(
+        map_html,
         width="stretch",
-        key="drainage_network_map",
-        config={"displayModeBar": True, "scrollZoom": True},
+        height=640,
+        alt="Tıkanıklık durumlarını gösteren Trabzon drenaj ağı haritası",
     )
 
 
@@ -783,16 +804,29 @@ with tabs[2]:
         st.success(st.session_state.pop("observation_saved_message"))
 
     # 2. SEÇİM VE YÜKLEME PANELİ
+    observation_sort_order = {
+        "severe": 0,
+        "partial": 1,
+        "unblocked": 2,
+        "unknown": 3,
+    }
+    selectable_asset_ids = sorted(
+        (asset.id for asset in assets),
+        key=lambda item_id: (
+            observation_sort_order[observations[item_id]["class"]],
+            asset_map[item_id].name,
+        ),
+    )
     with st.container(border=True):
         st.markdown("##### İncelenecek altyapı noktasını seçin")
         c_sel, c_up = st.columns([1.3, 1])
         with c_sel:
             selected_asset_id = st.selectbox(
                 "Altyapı noktası ve bağlı görüntü",
-                [asset.id for asset in assets],
+                selectable_asset_ids,
                 format_func=lambda item_id: (
                     f"{item_id} · {asset_map[item_id].name} · "
-                    f"{OBSERVATION_LABELS[observations[item_id]['class']]}"
+                    f"{OBSERVATION_SELECT_LABELS[observations[item_id]['class']]}"
                 ),
             )
         with c_up:

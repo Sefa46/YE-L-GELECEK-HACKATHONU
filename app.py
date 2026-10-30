@@ -657,37 +657,94 @@ with tabs[2]:
     is_severe_alert = (dataset_class == "severe") or (marked_percent >= 30.0)
     is_partial_alert = (dataset_class == "partial") or (10.0 <= marked_percent < 30.0)
 
-    # 3. ANALİZ ÖZET KARTI
+    # 3. OKUNABİLİR ANALİZ ÖZETİ
+    if is_severe_alert:
+        status_text = "Ciddi tıkalı"
+    elif is_partial_alert:
+        status_text = "Kısmi tıkalı"
+    else:
+        status_text = "Açık / normal"
+
     with st.container(border=True):
-        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-        col_m1.metric("Kayıt ID / Adı", image_caption.split(" · ")[-1] if " · " in image_caption else image_caption)
-        
-        if is_severe_alert:
-            col_m2.metric("Tespit Durumu", "🚨 Ciddi Tıkanıklık")
-        elif is_partial_alert:
-            col_m2.metric("Tespit Durumu", "⚠️ Kısmi Tıkanıklık")
-        else:
-            col_m2.metric("Tespit Durumu", "✅ Normal / Açık")
+        st.markdown(f"#### {selected_asset.id} · {selected_asset.name}")
+        st.caption("Altyapıya bağlı son görüntü kaydı ve model incelemesi")
 
-        col_m3.metric("İşaretlenen Tıkanıklık Alanı", f"%{marked_percent:.1f}")
-        col_m4.metric("Tespit Edilen Bölge Sayısı", detection["region_count"])
+        analysis_summary = pd.DataFrame(
+            [
+                {
+                    "Görüntü kaydı": observations[selected_asset_id]["sample_id"]
+                    if uploaded_image is None
+                    else uploaded_image.name,
+                    "Güncel durum": status_text,
+                    "İşaretlenen alan": marked_percent,
+                    "Bulunan bölge": int(detection["region_count"]),
+                }
+            ]
+        )
+        st.dataframe(
+            analysis_summary,
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "İşaretlenen alan": st.column_config.ProgressColumn(
+                    "İşaretlenen alan (%)",
+                    min_value=0,
+                    max_value=100,
+                    format="%.1f%%",
+                ),
+                "Bulunan bölge": st.column_config.NumberColumn(
+                    "Bulunan bölge", format="%d"
+                ),
+            },
+        )
 
-        st.caption(f"🧠 **Çalışan AI Modeli:** `{detection.get('method', 'YOLOE-26n-seg + MobileCLIP2')}`")
+        st.caption(
+            f"Kullanılan analiz: {detection.get('method', 'YOLOE-26n-seg + MobileCLIP2')}"
+        )
 
-        # MobileCLIP2 Güven Skorları Gösterimi
         clip_scores = detection.get("clip_scores")
         if clip_scores:
-            cl1, cl2, cl3 = st.columns(3)
-            cl1.metric("MobileCLIP2 Açık Güveni", f"%{clip_scores.get('unblocked', 0)*100:.1f}")
-            cl2.metric("MobileCLIP2 Kısmi Tıkalı", f"%{clip_scores.get('partial', 0)*100:.1f}")
-            cl3.metric("MobileCLIP2 Ciddi Tıkalı", f"%{clip_scores.get('severe', 0)*100:.1f}")
+            st.markdown("**Model güven dağılımı**")
+            confidence_table = pd.DataFrame(
+                [
+                    {
+                        "Sınıf": "Açık / normal",
+                        "Güven": clip_scores.get("unblocked", 0) * 100,
+                    },
+                    {
+                        "Sınıf": "Kısmi tıkalı",
+                        "Güven": clip_scores.get("partial", 0) * 100,
+                    },
+                    {
+                        "Sınıf": "Ciddi tıkalı",
+                        "Güven": clip_scores.get("severe", 0) * 100,
+                    },
+                ]
+            ).sort_values("Güven", ascending=False)
+            st.dataframe(
+                confidence_table,
+                width="stretch",
+                hide_index=True,
+                column_config={
+                    "Güven": st.column_config.ProgressColumn(
+                        "Model güveni (%)",
+                        min_value=0,
+                        max_value=100,
+                        format="%.1f%%",
+                    )
+                },
+            )
 
-        if is_severe_alert:
-            st.error("🚨 **DİKKAT:** Bu yapıda yüksek oranda tıkanıklık tespit edildi! Hidrolik kapasite düşüşü risk teşkil ediyor.")
-        elif is_partial_alert:
-            st.warning("⚠️ **UYARI:** Kısmi çöp/tortu birikmesi mevcut. Yağış öncesi kontrol önerilir.")
-        else:
-            st.success("✅ **BİLGİ:** Su giriş kesiti açık, tıkanıklık engeli görünmüyor.")
+    if is_severe_alert:
+        st.error(
+            "Ciddi tıkanıklık kaydı: yağış öncesi saha kontrolüne öncelik verin."
+        )
+    elif is_partial_alert:
+        st.warning(
+            "Kısmi birikme kaydı: yağış öncesi kontrol planına ekleyin."
+        )
+    else:
+        st.success("Su giriş kesiti açık görünüyor; rutin izleme yeterli.")
 
     # 4. GÖRSEL KARŞILAŞTIRMA (ÖNCE/SONRA)
     vis_left, vis_right = st.columns(2)

@@ -52,15 +52,15 @@ action_map = {action.id: action for action in actions}
 team_map = {team.id: team for team in teams}
 
 ASSET_STYLES = {
-    "inlet": ("Su girişi", "#1f77b4", 15),
-    "grate": ("Mazgal", "#4c9be8", 15),
-    "culvert": ("Menfez", "#f28e2b", 17),
-    "pipe": ("Boru", "#7f8c8d", 14),
-    "collector": ("Kolektör", "#7b5bb5", 17),
-    "open_channel": ("Açık kanal", "#1f9d8a", 17),
-    "pump_station": ("Pompa istasyonu", "#d64a4a", 19),
-    "storage": ("Depolama", "#2aa6b8", 19),
-    "outfall": ("Deşarj noktası", "#2f7d32", 18),
+    "inlet": ("Su girişi", "#0284c7", 15),          # Canlı gök mavisi
+    "grate": ("Mazgal", "#2563eb", 15),             # Belirgin kobalt mavi
+    "culvert": ("Menfez", "#ea580c", 17),           # Keskin turuncu
+    "pipe": ("Boru", "#64748b", 14),                # Koyu arduvaz gri
+    "collector": ("Kolektör", "#9333ea", 17),       # Canlı mor
+    "open_channel": ("Açık kanal", "#059669", 17),   # Zümrüt yeşili
+    "pump_station": ("Pompa istasyonu", "#dc2626", 20), # Parlak kırmızı
+    "storage": ("Depolama", "#0891b2", 19),         # Turkuaz
+    "outfall": ("Deşarj noktası", "#16a34a", 18),    # Canlı çimen yeşili
 }
 
 OBSERVATION_LABELS = {
@@ -348,10 +348,10 @@ with tabs[1]:
         map={
             "style": "open-street-map",
             "center": {
-                "lat": sum(asset.lat for asset in assets if asset.lat is not None) / len(assets),
-                "lon": sum(asset.lon for asset in assets if asset.lon is not None) / len(assets),
+                "lat": 41.0040,
+                "lon": 39.7420,
             },
-            "zoom": 13.8,
+            "zoom": 13.4,
         },
         height=620,
         margin={"l": 0, "r": 0, "t": 10, "b": 0},
@@ -407,63 +407,131 @@ with tabs[1]:
     )
 
 with tabs[2]:
-    st.subheader("Gelen görüntüler ve tıkanıklık işaretleri")
+    st.subheader("Gözlem & Yapay Zekâ Analiz Merkezi")
+    st.caption("Saha kameralarından ve ekiplerden gelen görseller taranarak tıkanıklık bölgeleri tespit edilir.")
 
-    st.markdown("**Son görüntü akışı**")
-    gallery_columns = st.columns(len(vision_samples))
-    for column, sample in zip(gallery_columns, vision_samples):
-        column.image(str(project_root() / sample["path"]), width="stretch")
-        column.caption(f"{sample['id']} · {OBSERVATION_LABELS[sample['dataset_class']]}")
+    # 1. ÖZET & UYARI ÇUBUĞU (Kırmızı / Sarı / Yeşil uyarı kartları)
+    flagged_samples = [s for s in vision_samples if s["dataset_class"] in {"severe", "partial"}]
+    severe_count = sum(1 for s in vision_samples if s["dataset_class"] == "severe")
+    partial_count = sum(1 for s in vision_samples if s["dataset_class"] == "partial")
+    unblocked_count = sum(1 for s in vision_samples if s["dataset_class"] == "unblocked")
 
+    stat_c1, stat_c2, stat_c3, stat_c4 = st.columns(4)
+    stat_c1.metric("Toplam Görsel Kaydı", len(vision_samples))
+    stat_c2.metric("🚨 Acil / Ciddi Tıkalı", severe_count)
+    stat_c3.metric("⚠️ Kısmi Tıkanma", partial_count)
+    stat_c4.metric("✅ Açık / Normal", unblocked_count)
+
+    if severe_count > 0:
+        st.error(
+            f"🚨 **KRİTİK UYARI:** {severe_count} noktada menfez/mazgal su girişinin ciddi derecede tıkandığı tespit edildi! "
+            "Taşkın riskini önlemek için acil müdahale ekibi yönlendirilmelidir."
+        )
+
+    # 2. SEÇİM VE YÜKLEME PANELİ
     sample_map = {sample["id"]: sample for sample in vision_samples}
-    control_left, control_right = st.columns([1.2, 1])
-    with control_left:
-        selected_sample_id = st.selectbox(
-            "İncelenecek kayıt",
-            list(sample_map),
-            format_func=lambda item: f"{item} · {sample_map[item]['name']}",
-        )
-    with control_right:
-        uploaded_image = st.file_uploader(
-            "Yeni görüntü ekle",
-            type=["jpg", "jpeg", "png"],
-            help="Yeni bir saha veya kamera görüntüsünü aynı ekranda inceleyebilirsiniz.",
-        )
+    
+    with st.container(border=True):
+        st.markdown("##### 🔍 İncelenecek Görüntüyü Seçin veya Yeni Fotoğraf Yükleyin")
+        c_sel, c_up = st.columns([1.3, 1])
+        with c_sel:
+            def _format_sample_choice(item_id: str) -> str:
+                s = sample_map[item_id]
+                cls = s["dataset_class"]
+                icon = "🚨" if cls == "severe" else "⚠️" if cls == "partial" else "✅"
+                return f"{icon} {s['id']} · {s['name']} [{OBSERVATION_LABELS[cls]}]"
+
+            selected_sample_id = st.selectbox(
+                "Mevcut Saha Görseli",
+                list(sample_map),
+                format_func=_format_sample_choice,
+            )
+        with c_up:
+            uploaded_image = st.file_uploader(
+                "Veya Yeni Saha Fotoğrafı Yükle",
+                type=["jpg", "jpeg", "png"],
+                help="Saha ekibinden gelen yeni fotoğrafı yükleyip anında analiz ettirebilirsiniz.",
+            )
 
     selected_sample = sample_map[selected_sample_id]
     if uploaded_image is not None:
         image_bytes = uploaded_image.getvalue()
         image_source = image_bytes
-        image_caption = uploaded_image.name
+        image_caption = f"Yüklenen: {uploaded_image.name}"
         dataset_class = None
     else:
         image_source = project_root() / selected_sample["path"]
         image_caption = f"{selected_sample['id']} · {selected_sample['name']}"
         dataset_class = selected_sample["dataset_class"]
 
+    # AI Analizi çalıştır
     detection = mark_obstruction_regions(image_source)
     marked_percent = float(detection["marked_fraction"]) * 100
-    status_a, status_b, status_c = st.columns(3)
-    status_a.metric("Kayıt", image_caption)
-    status_b.metric(
-        "Görüntü durumu",
-        OBSERVATION_LABELS[dataset_class] if dataset_class else "Yeni kayıt",
-    )
-    status_c.metric("Modelin işaretlediği alan", f"%{marked_percent:.1f}")
+    
+    # Uyarı durumu belirleme
+    is_severe_alert = (dataset_class == "severe") or (marked_percent >= 30.0)
+    is_partial_alert = (dataset_class == "partial") or (10.0 <= marked_percent < 30.0)
 
-    left, right = st.columns(2)
-    with left:
-        st.markdown("**Gelen görüntü**")
-        st.image(image_source, caption=image_caption, width="stretch")
-    with right:
-        st.markdown("**Modelin işaretlediği tıkanıklıklar**")
-        st.image(
-            detection["annotated_image"],
-            caption=f"{detection['region_count']} tıkanıklık bölgesi işaretlendi",
-            width="stretch",
-        )
+    # 3. ANALİZ ÖZET KARTI
+    with st.container(border=True):
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_m1.metric("Kayıt ID / Adı", image_caption.split(" · ")[-1] if " · " in image_caption else image_caption)
+        
+        if is_severe_alert:
+            col_m2.metric("Tespit Durumu", "🚨 Ciddi Tıkanıklık")
+        elif is_partial_alert:
+            col_m2.metric("Tespit Durumu", "⚠️ Kısmi Tıkanıklık")
+        else:
+            col_m2.metric("Tespit Durumu", "✅ Normal / Açık")
 
-    with st.expander("Operatör kontrolü ve kayıt"):
+        col_m3.metric("İşaretlenen Tıkanıklık Alanı", f"%{marked_percent:.1f}")
+        col_m4.metric("Tespit Edilen Bölge Sayısı", detection["region_count"])
+
+        st.caption(f"🧠 **Çalışan AI Modeli:** `{detection.get('method', 'YOLOE-26n-seg + MobileCLIP2')}`")
+
+        # MobileCLIP2 Güven Skorları Gösterimi
+        clip_scores = detection.get("clip_scores")
+        if clip_scores:
+            cl1, cl2, cl3 = st.columns(3)
+            cl1.metric("MobileCLIP2 Açık Güveni", f"%{clip_scores.get('unblocked', 0)*100:.1f}")
+            cl2.metric("MobileCLIP2 Kısmi Tıkalı", f"%{clip_scores.get('partial', 0)*100:.1f}")
+            cl3.metric("MobileCLIP2 Ciddi Tıkalı", f"%{clip_scores.get('severe', 0)*100:.1f}")
+
+        if is_severe_alert:
+            st.error("🚨 **DİKKAT:** Bu yapıda yüksek oranda tıkanıklık tespit edildi! Hidrolik kapasite düşüşü risk teşkil ediyor.")
+        elif is_partial_alert:
+            st.warning("⚠️ **UYARI:** Kısmi çöp/tortu birikmesi mevcut. Yağış öncesi kontrol önerilir.")
+        else:
+            st.success("✅ **BİLGİ:** Su giriş kesiti açık, tıkanıklık engeli görünmüyor.")
+
+    # 4. GÖRSEL KARŞILAŞTIRMA (ÖNCE/SONRA)
+    vis_left, vis_right = st.columns(2)
+    with vis_left:
+        with st.container(border=True):
+            st.markdown("📸 **Orijinal Saha Görüntüsü**")
+            st.image(image_source, caption=image_caption, width="stretch")
+    with vis_right:
+        with st.container(border=True):
+            st.markdown("🤖 **Yapay Zekâ Tıkanıklık Tespiti & Maske**")
+            st.image(
+                detection["annotated_image"],
+                caption=f"AI Tespit: {detection['region_count']} bölge sınırlandı (%{marked_percent:.1f} alan)",
+                width="stretch",
+            )
+
+    # 5. GÖRSEL AKIŞI / GALERİ (DÜZENLİ KARTLAR)
+    st.markdown("##### 📂 Tüm Saha Görüntüleri Arşivi")
+    gallery_cols = st.columns(len(vision_samples))
+    for col, sample in zip(gallery_cols, vision_samples):
+        cls = sample["dataset_class"]
+        icon = "🚨" if cls == "severe" else "⚠️" if cls == "partial" else "✅"
+        with col:
+            with st.container(border=True):
+                st.image(str(project_root() / sample["path"]), width="stretch")
+                st.caption(f"**{sample['id']}**\n\n{icon} {OBSERVATION_LABELS[cls]}")
+
+    # 6. OPERATÖR DOĞRULAMA & ENTEGRASYON
+    with st.expander("🛠️ Operatör Doğrulama ve Altyapı Kaydı", expanded=False):
         inspection_assets = [
             asset
             for asset in assets
@@ -471,7 +539,7 @@ with tabs[2]:
             and asset.type.value in {"inlet", "grate", "culvert", "open_channel"}
         ]
         linked_asset_id = st.selectbox(
-            "Bağlı altyapı noktası",
+            "Bağlanacak Altyapı Noktası",
             [asset.id for asset in inspection_assets],
             index=next(
                 (
@@ -481,29 +549,29 @@ with tabs[2]:
                 ),
                 0,
             ),
-            format_func=lambda item: asset_map[item].name,
+            format_func=lambda item: f"{item} · {asset_map[item].name} ({ASSET_STYLES[asset_map[item].type.value][0]})",
         )
         class_values = [item.value for item in ObservationClass]
         suggested_class = dataset_class or (
-            "partial" if detection["region_count"] else "unknown"
+            "severe" if marked_percent >= 30 else "partial" if marked_percent >= 10 else "unblocked"
         )
         label_col, fraction_col = st.columns(2)
         with label_col:
             label = st.selectbox(
-                "Gözlem sonucu",
+                "Nihai Operatör Sınıfı",
                 class_values,
                 index=class_values.index(suggested_class),
                 format_func=lambda value: OBSERVATION_LABELS[value],
             )
         with fraction_col:
             fraction = st.slider(
-                "Görünür kapanma oranı",
+                "Görünür Kapanma Oranı",
                 0.0,
                 1.0,
                 min(1.0, float(detection["marked_fraction"])),
                 0.01,
             )
-        if st.button("Gözlemi kaydet"):
+        if st.button("Gözlemi Onayla ve Ağa Kaydet", type="primary"):
             verification_source = (
                 image_source
                 if uploaded_image is None
@@ -515,10 +583,10 @@ with tabs[2]:
                 fraction,
             )
             st.success(
-                f"{asset_map[linked_asset_id].name} için kayıt tamamlandı: "
-                f"{OBSERVATION_LABELS[result['class'].value]}"
+                f"✅ {asset_map[linked_asset_id].name} için gözlem onaylandı: "
+                f"**{OBSERVATION_LABELS[result['class'].value]}** (Görünür Kapanma: %{fraction*100:.0f})"
             )
-        st.caption("Görünür kapanma oranı ile kapasite katsayısı ayrı kaydedilir.")
+        st.caption("Not: Görsel tıkanıklık oranı doğrudan hidrolik kapasiteye eşitlenmez; ağ modelinde hidrolik faktör olarak ayrıca hesaplanır.")
 
     st.caption(
         "Görüntü kaynağı: Visual Hydraulics Lab Blockage Dataset · "

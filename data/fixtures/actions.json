@@ -1,9 +1,14 @@
 [
-  {"id":"A1","asset_id":"I1","action_type":"clean_inlet","name":"Sahil mazgalını temizle","duration_minutes":24,"required_equipment":["el_aletleri"],"required_skills":["mazgal_bakim"],"capacity_factor_after":0.92},
-  {"id":"A2","asset_id":"I2","action_type":"clean_inlet","name":"Hastane yolu mazgalını temizle","duration_minutes":28,"required_equipment":["el_aletleri"],"required_skills":["mazgal_bakim"],"capacity_factor_after":0.94},
-  {"id":"A3","asset_id":"C1","action_type":"clear_culvert","name":"Merkez menfezi aç","duration_minutes":48,"required_equipment":["vakum_araci"],"required_skills":["menfez_bakim"],"capacity_factor_after":0.88},
-  {"id":"A4","asset_id":"CH1","action_type":"clear_channel","name":"Doğu kanalında kritik tortuyu temizle","duration_minutes":55,"required_equipment":["mini_ekskavator"],"required_skills":["kanal_bakim"],"capacity_factor_after":0.93},
-  {"id":"A5","asset_id":"P1","action_type":"inspect_collector","name":"Ana kolektörü doğrulanmış bakım için incele","duration_minutes":35,"required_equipment":["cctv"],"required_skills":["kolektor_inceleme"],"capacity_factor_after":0.80},
-  {"id":"A6","asset_id":"PS1","action_type":"prepare_pump","name":"Sahil pompasını hazırla (simülasyon)","duration_minutes":32,"required_equipment":["pompa_kiti"],"required_skills":["pompa_operasyonu"],"capacity_factor_after":0.95},
+  {"id":"A1","asset_id":"I1","action_type":"clean_inlet","name":"Ganita sahil mazgalını temizle","duration_minutes":24,"required_equipment":["el_aletleri"],"required_skills":["mazgal_bakim"],"capacity_factor_after":0.92},
+  {"id":"A2","asset_id":"I2","action_type":"clean_inlet","name":"Farabi acil servis mazgalını temizle","duration_minutes":26,"required_equipment":["el_aletleri"],"required_skills":["mazgal_bakim"],"capacity_factor_after":0.94},
+  {"id":"A8","asset_id":"I4","action_type":"clean_inlet","name":"Meydan Parkı ana ızgarasını temizle","duration_minutes":22,"required_equipment":["el_aletleri"],"required_skills":["mazgal_bakim"],"capacity_factor_after":0.90},
+  {"id":"A10","asset_id":"I7","action_type":"clean_inlet","name":"Boztepe yamaç mazgalını aç ve temizle","duration_minutes":25,"required_equipment":["el_aletleri"],"required_skills":["mazgal_bakim"],"capacity_factor_after":0.88},
+  {"id":"A11","asset_id":"C4","action_type":"clear_culvert","name":"Boztepe yamaç tahliye menfezini aç","duration_minutes":40,"required_equipment":["vakum_araci"],"required_skills":["menfez_bakim"],"capacity_factor_after":0.86},
+  {"id":"A12","asset_id":"C5","action_type":"clear_culvert","name":"KTÜ - Kalkınma vadi menfezini temizle","duration_minutes":46,"required_equipment":["vakum_araci"],"required_skills":["menfez_bakim"],"capacity_factor_after":0.88},
+  {"id":"A9","asset_id":"C2","action_type":"clear_culvert","name":"Meydan bağlantı menfezini aç","duration_minutes":45,"required_equipment":["vakum_araci"],"required_skills":["menfez_bakim"],"capacity_factor_after":0.85},
+  {"id":"A3","asset_id":"C1","action_type":"clear_culvert","name":"Ganita merkez sahil menfezini aç","duration_minutes":48,"required_equipment":["vakum_araci"],"required_skills":["menfez_bakim"],"capacity_factor_after":0.88},
+  {"id":"A4","asset_id":"CH1","action_type":"clear_channel","name":"Liman doğu kanalında tortuyu temizle","duration_minutes":55,"required_equipment":["mini_ekskavator"],"required_skills":["kanal_bakim"],"capacity_factor_after":0.93},
+  {"id":"A5","asset_id":"P1","action_type":"inspect_collector","name":"Liman ana kolektörünü incele","duration_minutes":35,"required_equipment":["cctv"],"required_skills":["kolektor_inceleme"],"capacity_factor_after":0.80},
+  {"id":"A6","asset_id":"PS1","action_type":"prepare_pump","name":"Trabzon liman terfi pompasını hazırla (simülasyon)","duration_minutes":32,"required_equipment":["pompa_kiti"],"required_skills":["pompa_operasyonu"],"capacity_factor_after":0.95},
   {"id":"A7","asset_id":"S1","action_type":"evaluate_storage_drawdown","name":"Depolama hacmi senaryosunu değerlendir","duration_minutes":18,"required_equipment":["tablet"],"required_skills":["hidrolik_operator"],"capacity_factor_after":0.92}
 ]

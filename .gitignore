@@ -9,4 +9,5 @@ data/external/*
 *.db
 *.out
 *.rpt
+*.pt
 .DS_Store

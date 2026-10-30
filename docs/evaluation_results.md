@@ -30,10 +30,10 @@ Bu ölçüm yalnız deterministik proxy indeksini karşılaştırır. Gerçek ta
 ## Test sonucu
 
 ```text
-16 passed in 0.18s
+17 passed
 ```
 
-Test süresi yerel Apple Silicon makinedeki tek çalıştırmadan alınmıştır; performans garantisi değildir.
+Test paketi yerel Python 3.11 ortamında çalıştırılmıştır.
 
 ## Gerçek durum tablosu
 
@@ -45,11 +45,11 @@ Test süresi yerel Apple Silicon makinedeki tek çalıştırmadan alınmıştır
 | Görsel gözlem | Kısmi | Görsel + manuel etiket; otomatik CV yok |
 | Hidrolik etki | Simülasyon | Heuristik proxy; SWMM değil |
 | Risk ve müdahale faydası | Simülasyon | Ayrı indeksler |
-| Kombinasyon/sinerji hesabı | Çalışıyor | Proxy senaryo önbelleği henüz yok |
+| Kombinasyon/sinerji hesabı | Çalışıyor | Senaryo karması + eylem kümesine göre bellek içi önbellek aktif |
 | İki ekipli planlama | Çalışıyor | Deterministik sınırlı arama |
 | İş emri ve yeniden planlama | Çalışıyor | Yeni operatör gözlemi zorunlu |
 | Baseline karşılaştırması | Çalışıyor | Aynı fixture koşulları |
 | Canlı Open-Meteo/MGM | Yapılmadı | P1 |
 | SWMM/PySWMM | Yapılmadı | Proxy fallback aktif |
 | Öğrenilmiş CV modeli | Yapılmadı | Doğruluk metriği üretilmedi |
-| Gerçek belediye/donanım bağlantısı | Yapılmadı | Yetkisiz komut yok |
+| Gerçek belediye/donanım bağlantısı | MVP kapsamı dışı | Sentetik görüntü, ağ ve operasyon akışı bilinçli demo tercihidir; dış sisteme komut gönderilmez |

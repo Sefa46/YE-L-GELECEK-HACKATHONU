@@ -7,4 +7,5 @@
 - Görünür kapanma oranı hidrolik kapasiteye otomatik dönüştürülmez.
 - MGM uyarısı otomatik çekilmez ve sentetik olay resmî uyarı olarak gösterilmez.
 - `apply`/doğrulama akışı dijital ikiz durumunu değiştirir; fiziksel pompa, vana, alarm veya ekibe komut göndermez.
+- Gerçek belediye veya donanım entegrasyonu bu hackathon MVP'sinin hedefi değildir; uçtan uca akış sentetik görüntü, ağ ve operasyon verisiyle gösterilir.
 - Gerçek kullanım için SWMM veya eşdeğer model, saha kalibrasyonu, yetkili veri erişimi, güvenlik prosedürleri ve insan onayı gerekir.

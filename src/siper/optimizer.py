@@ -55,7 +55,7 @@ def optimize_plan(
     actions: list[Action],
     teams: list[Team],
     deadline_minutes: int = 120,
-    max_actions: int = 3,
+    max_actions: int = 6,
 ) -> Plan:
     baseline = model.run()
     single_benefits = {

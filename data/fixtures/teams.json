@@ -1,7 +1,7 @@
 [
   {
     "id": "T1",
-    "name": "Kuzey Sahil & Merkez Müdahale Ekibi",
+    "name": "Kuzey Sahil & Ganita Müdahale Ekibi",
     "skills": ["mazgal_bakim", "menfez_bakim", "kolektor_inceleme"],
     "equipment": ["el_aletleri", "vakum_araci", "cctv"],
     "start_asset_id": "I1",
@@ -10,11 +10,20 @@
   },
   {
     "id": "T2",
-    "name": "Güney Vadi & Teknik Ekip",
+    "name": "Ortahisar & Boztepe Acil Ekibi",
+    "skills": ["mazgal_bakim", "menfez_bakim", "kanal_bakim"],
+    "equipment": ["el_aletleri", "vakum_araci", "mini_ekskavator"],
+    "start_asset_id": "I7",
+    "personnel_count": 4,
+    "vehicle": "Hızlı Mazgal Açma Kamyoneti (61 BZT 601)"
+  },
+  {
+    "id": "T3",
+    "name": "Değirmendere & Liman Teknik Ekibi",
     "skills": ["mazgal_bakim", "kanal_bakim", "pompa_operasyonu", "hidrolik_operator"],
     "equipment": ["el_aletleri", "mini_ekskavator", "pompa_kiti", "tablet"],
     "start_asset_id": "PS1",
     "personnel_count": 3,
-    "vehicle": "Mini Ekskavatörlü Acil Müdahale Kamyoneti (61 TIS 202)"
+    "vehicle": "Mobil Pompa & Ağ Kontrol Aracı (61 TIS 202)"
   }
 ]

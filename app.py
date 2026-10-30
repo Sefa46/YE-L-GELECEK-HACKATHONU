@@ -197,6 +197,10 @@ st.html(
         .st-key-siper_header [data-testid="stColumn"] {
             align-self: baseline !important;
         }
+
+        .st-key-siper_header [data-testid="stColumn"]:nth-child(2) {
+            transform: translateY(9px);
+        }
     </style>
     """
 )

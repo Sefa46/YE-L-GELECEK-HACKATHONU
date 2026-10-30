@@ -189,6 +189,14 @@ st.html(
         .st-key-siper_header {
             transform: translateY(-12px);
         }
+
+        .st-key-siper_header [data-testid="stHorizontalBlock"] {
+            align-items: baseline !important;
+        }
+
+        .st-key-siper_header [data-testid="stColumn"] {
+            align-self: baseline !important;
+        }
     </style>
     """
 )

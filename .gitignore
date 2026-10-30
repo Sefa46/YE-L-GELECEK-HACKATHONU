@@ -7,4 +7,6 @@ __pycache__/
 data/external/*
 !data/external/.gitkeep
 *.db
+*.out
+*.rpt
 .DS_Store

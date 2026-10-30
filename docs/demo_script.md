@@ -2,15 +2,15 @@
 
 ## 0:00–0:30 — Olay ve sınırlar
 
-`Durum Merkezi` sekmesini aç. Sentetik şiddetli yağış olayını, 120 dakikalık pencereyi ve kaynak etiketini göster. Üstteki heuristik model uyarısını özellikle belirt.
+`Durum Merkezi` sekmesini aç. Trabzon konumunu, güncel saati, yağış başlangıç ve bitiş saatlerini, kalan hazırlık süresini ve saatlik yağış çizelgesini göster.
 
 ## 0:30–0:55 — Bağlı ağ
 
-`Drenaj Ağı` sekmesinde 10 varlığı ve akış bağlantılarını göster. Mazgal, menfez, kolektör, kanal, depolama, pompa ve çıkışın tek sistem olarak ele alındığını anlat.
+`Drenaj Ağı` sekmesinde 10 varlığı ve akış bağlantılarını harita üzerinde göster. Mazgal, menfez, kolektör, kanal, depolama, pompa ve çıkışın tek sistem olarak ele alındığını anlat.
 
 ## 0:55–1:20 — Gözlem güveni
 
-`Gözlem & AI` sekmesinde sentetik görseli aç. Manuel sınıfı doğrula. Görünür kapanmanın hidrolik kapasiteye otomatik kopyalanmadığını vurgula; otomatik CV doğruluğu iddiası yapma.
+`Gözlem & AI` sekmesinde gelen kamera görüntüsü ile işaretlenmiş tıkanıklık bölgesini yan yana göster. Ardından operatör kontrolünü aç ve görünür kapanma ile hidrolik kapasitenin ayrı değerler olduğunu anlat.
 
 ## 1:20–1:50 — Risk, fayda ve kombinasyon
 
@@ -24,6 +24,6 @@
 
 `Operasyon Takibi` sekmesinde bir işi önce `Tamamlandı bildir` ile bekleyen duruma getir. Sonra yeni gözlemle doğrula; yeni plan kimliği ve kalan görevleri göster.
 
-## 2:45–3:00 — Karşılaştırma
+## 2:45–3:00 — Karşılaştırma ve hidrolik doğrulama
 
-`Performans` sekmesinde B0/B1/B2/P tablosunu göster. Bu fixture'da SİPER AI'nın daha düşük proxy etki indeksi verdiğini, bunun gerçek sel azaltımı veya m³ sonucu olmadığını açıkça söyle.
+`Performans` sekmesinde yöntemlerin sağladığı yüzdesel faydayı göster. `SWMM hidrolik doğrulamasını göster` bölümünü açarak aynı yağışta baz `26.39 m³`, menfez múhalesi `5.31 m³` ve üç üst-hat múhalesi `3.66 m³` sonucunu göster.

@@ -1,0 +1,98 @@
+{
+  "baseline": {
+    "scenario_hash": "5e9bf65b6dbb5594",
+    "action_ids": [],
+    "overflow_volume_m3": 26.392277,
+    "node_flooding_volume_m3": {
+      "I1": 0.939741,
+      "I2": 1.724769,
+      "I3": 0.0,
+      "C1": 22.785311,
+      "P1": 0.87345,
+      "CH1": 0.0,
+      "S1": 0.0,
+      "O1": 0.0
+    },
+    "max_node_depth_m": {
+      "I1": 0.45,
+      "I2": 0.45,
+      "I3": 0.205911,
+      "C1": 0.65,
+      "P1": 0.75,
+      "CH1": 0.157369,
+      "S1": 0.21288,
+      "O1": 0.21281
+    },
+    "continuity_error_pct": -1.69517,
+    "engine_version": "5.2.4",
+    "flow_units": "LPS",
+    "source": "hydraulic_simulation",
+    "model_label": "EPA SWMM 5.2 / SYNTHETIC GEOMETRY / NOT FIELD CALIBRATED"
+  },
+  "culvert_restored": {
+    "scenario_hash": "86275b3d0a769328",
+    "action_ids": [
+      "A3"
+    ],
+    "overflow_volume_m3": 5.309244,
+    "node_flooding_volume_m3": {
+      "I1": 0.0,
+      "I2": 0.45972,
+      "I3": 0.0,
+      "C1": 0.0,
+      "P1": 4.849524,
+      "CH1": 0.0,
+      "S1": 0.0,
+      "O1": 0.0
+    },
+    "max_node_depth_m": {
+      "I1": 0.250541,
+      "I2": 0.45,
+      "I3": 0.206418,
+      "C1": 0.306986,
+      "P1": 0.75,
+      "CH1": 0.165963,
+      "S1": 0.221857,
+      "O1": 0.221833
+    },
+    "continuity_error_pct": -1.105748,
+    "engine_version": "5.2.4",
+    "flow_units": "LPS",
+    "source": "hydraulic_simulation",
+    "model_label": "EPA SWMM 5.2 / SYNTHETIC GEOMETRY / NOT FIELD CALIBRATED"
+  },
+  "three_upstream_restorations": {
+    "scenario_hash": "16a033b397efbcab",
+    "action_ids": [
+      "A1",
+      "A2",
+      "A3"
+    ],
+    "overflow_volume_m3": 3.660125,
+    "node_flooding_volume_m3": {
+      "I1": 0.0,
+      "I2": 0.0,
+      "I3": 0.0,
+      "C1": 0.0,
+      "P1": 3.660125,
+      "CH1": 0.0,
+      "S1": 0.0,
+      "O1": 0.0
+    },
+    "max_node_depth_m": {
+      "I1": 0.180051,
+      "I2": 0.172334,
+      "I3": 0.206455,
+      "C1": 0.29743,
+      "P1": 0.75,
+      "CH1": 0.165778,
+      "S1": 0.222058,
+      "O1": 0.222042
+    },
+    "continuity_error_pct": -1.013256,
+    "engine_version": "5.2.4",
+    "flow_units": "LPS",
+    "source": "hydraulic_simulation",
+    "model_label": "EPA SWMM 5.2 / SYNTHETIC GEOMETRY / NOT FIELD CALIBRATED"
+  }
+}

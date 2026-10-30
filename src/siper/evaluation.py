@@ -12,13 +12,14 @@ def _policy_result(
     model: ProxyHydraulicModel,
     teams: list[Team],
     max_actions: int = 3,
+    deadline_minutes: int = 120,
 ) -> dict[str, object]:
     benefits = intervention_benefits(model, ordered)
     selected: list[Action] = []
     assignments = []
     for action in ordered:
         candidate = selected + [action]
-        attempt = assign_portfolio(model, candidate, teams, 120, benefits)
+        attempt = assign_portfolio(model, candidate, teams, deadline_minutes, benefits)
         if attempt is not None and len(candidate) <= max_actions:
             selected = candidate
             assignments = attempt
@@ -36,7 +37,11 @@ def _policy_result(
 
 
 def compare_policies(
-    assets: list[Asset], actions: list[Action], teams: list[Team], model: ProxyHydraulicModel
+    assets: list[Asset],
+    actions: list[Action],
+    teams: list[Team],
+    model: ProxyHydraulicModel,
+    deadline_minutes: int = 120,
 ) -> list[dict[str, object]]:
     baseline = model.run()
     action_asset = {action.id: next(asset for asset in assets if asset.id == action.asset_id) for action in actions}
@@ -49,7 +54,7 @@ def compare_policies(
     )
     risks = asset_risk_scores(assets, baseline.node_impact)
     risk_order = sorted(actions, key=lambda action: risks[action.asset_id], reverse=True)
-    optimized = optimize_plan(model, actions, teams)
+    optimized = optimize_plan(model, actions, teams, deadline_minutes=deadline_minutes)
     return [
         {
             "policy": "B0 — Müdahale yok",
@@ -60,8 +65,20 @@ def compare_policies(
             "constraint_violations": 0,
             "source": baseline.source.value,
         },
-        _policy_result("B1 — Görünür tıkanıklık", blockage_order, model, teams),
-        _policy_result("B2 — Yerel risk", risk_order, model, teams),
+        _policy_result(
+            "B1 — Görünür tıkanıklık",
+            blockage_order,
+            model,
+            teams,
+            deadline_minutes=deadline_minutes,
+        ),
+        _policy_result(
+            "B2 — Yerel risk",
+            risk_order,
+            model,
+            teams,
+            deadline_minutes=deadline_minutes,
+        ),
         {
             "policy": "P — SİPER AI portföyü",
             "action_ids": optimized.selected_action_ids,

@@ -5,6 +5,7 @@
 - SWMM modeli fiziksel denklemler ve sentetik boru geometrisi kullanır; arazi/saha verisiyle kalibre edilmemiştir ve gerçek Trabzon taşkın tahmini değildir.
 - Etki ve fayda değerleri göreli demo indeksleridir; m³, olasılık, ekonomik zarar veya gerçek sel azaltımı değildir.
 - Görsel ekrandaki otomatik maske, renk-bölge tabanlı başlangıç işaretlemesidir. Öğrenilmiş bilgisayarlı görü modeli ve bağımsız doğruluk değerlendirmesi henüz yoktur.
+- VHBD alt kümesi kontrollü hidrolik laboratuvarından gelir; Trabzon saha kameralarındaki ışık, kir, kamera açısı ve hava koşullarını temsil ettiği varsayılmaz.
 - Görünür kapanma oranı hidrolik kapasiteye otomatik dönüştürülmez.
 - MGM uyarısı otomatik çekilmez ve sentetik olay resmî uyarı olarak gösterilmez.
 - `apply`/doğrulama akışı dijital ikiz durumunu değiştirir; fiziksel pompa, vana, alarm veya ekibe komut göndermez.

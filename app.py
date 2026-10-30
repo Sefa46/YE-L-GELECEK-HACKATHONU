@@ -15,7 +15,14 @@ from siper.network import network_diagnostics
 from siper.optimizer import optimize_plan
 from siper.risk import asset_risk_scores, intervention_benefits
 from siper.schemas import ObservationClass, WorkOrderStatus
-from siper.storage import load_actions, load_assets, load_teams, load_weather, project_root
+from siper.storage import (
+    load_actions,
+    load_assets,
+    load_teams,
+    load_vision_samples,
+    load_weather,
+    project_root,
+)
 from siper.vision import assess_obstruction, mark_obstruction_regions
 from siper.workflow import (
     create_work_orders,
@@ -31,6 +38,7 @@ assets = load_assets()
 actions = load_actions()
 teams = load_teams()
 event = load_weather()
+vision_samples = load_vision_samples()
 model = ProxyHydraulicModel(assets, event)
 baseline = model.run()
 local_timezone = ZoneInfo("Europe/Istanbul")
@@ -400,27 +408,49 @@ with tabs[1]:
 
 with tabs[2]:
     st.subheader("Gelen görüntüler ve tıkanıklık işaretleri")
-    visual_assets = [asset for asset in assets if asset.image_path]
-    selected_asset_id = st.selectbox(
-        "Kamera kaydı",
-        [asset.id for asset in visual_assets],
-        format_func=lambda item: asset_map[item].name,
-    )
-    selected_asset = asset_map[selected_asset_id]
-    uploaded_image = st.file_uploader(
-        "Yeni görüntü ekle",
-        type=["jpg", "jpeg", "png"],
-        help="Yeni bir saha veya kamera görüntüsünü aynı ekranda inceleyebilirsiniz.",
-    )
+
+    st.markdown("**Son görüntü akışı**")
+    gallery_columns = st.columns(len(vision_samples))
+    for column, sample in zip(gallery_columns, vision_samples):
+        column.image(str(project_root() / sample["path"]), width="stretch")
+        column.caption(f"{sample['id']} · {OBSERVATION_LABELS[sample['dataset_class']]}")
+
+    sample_map = {sample["id"]: sample for sample in vision_samples}
+    control_left, control_right = st.columns([1.2, 1])
+    with control_left:
+        selected_sample_id = st.selectbox(
+            "İncelenecek kayıt",
+            list(sample_map),
+            format_func=lambda item: f"{item} · {sample_map[item]['name']}",
+        )
+    with control_right:
+        uploaded_image = st.file_uploader(
+            "Yeni görüntü ekle",
+            type=["jpg", "jpeg", "png"],
+            help="Yeni bir saha veya kamera görüntüsünü aynı ekranda inceleyebilirsiniz.",
+        )
+
+    selected_sample = sample_map[selected_sample_id]
     if uploaded_image is not None:
         image_bytes = uploaded_image.getvalue()
         image_source = image_bytes
         image_caption = uploaded_image.name
+        dataset_class = None
     else:
-        image_source = project_root() / selected_asset.image_path
-        image_caption = selected_asset.name
+        image_source = project_root() / selected_sample["path"]
+        image_caption = f"{selected_sample['id']} · {selected_sample['name']}"
+        dataset_class = selected_sample["dataset_class"]
 
     detection = mark_obstruction_regions(image_source)
+    marked_percent = float(detection["marked_fraction"]) * 100
+    status_a, status_b, status_c = st.columns(3)
+    status_a.metric("Kayıt", image_caption)
+    status_b.metric(
+        "Görüntü durumu",
+        OBSERVATION_LABELS[dataset_class] if dataset_class else "Yeni kayıt",
+    )
+    status_c.metric("Modelin işaretlediği alan", f"%{marked_percent:.1f}")
+
     left, right = st.columns(2)
     with left:
         st.markdown("**Gelen görüntü**")
@@ -434,9 +464,28 @@ with tabs[2]:
         )
 
     with st.expander("Operatör kontrolü ve kayıt"):
+        inspection_assets = [
+            asset
+            for asset in assets
+            if asset.inspection_accessible
+            and asset.type.value in {"inlet", "grate", "culvert", "open_channel"}
+        ]
+        linked_asset_id = st.selectbox(
+            "Bağlı altyapı noktası",
+            [asset.id for asset in inspection_assets],
+            index=next(
+                (
+                    index
+                    for index, asset in enumerate(inspection_assets)
+                    if asset.id == "C1"
+                ),
+                0,
+            ),
+            format_func=lambda item: asset_map[item].name,
+        )
         class_values = [item.value for item in ObservationClass]
-        suggested_class = (
-            "severe" if (selected_asset.blockage_visual_fraction or 0) >= 0.75 else "partial"
+        suggested_class = dataset_class or (
+            "partial" if detection["region_count"] else "unknown"
         )
         label_col, fraction_col = st.columns(2)
         with label_col:
@@ -451,7 +500,7 @@ with tabs[2]:
                 "Görünür kapanma oranı",
                 0.0,
                 1.0,
-                float(selected_asset.blockage_visual_fraction or 0),
+                min(1.0, float(detection["marked_fraction"])),
                 0.01,
             )
         if st.button("Gözlemi kaydet"):
@@ -465,8 +514,16 @@ with tabs[2]:
                 ObservationClass(label),
                 fraction,
             )
-            st.success(f"Kayıt tamamlandı: {OBSERVATION_LABELS[result['class'].value]}")
+            st.success(
+                f"{asset_map[linked_asset_id].name} için kayıt tamamlandı: "
+                f"{OBSERVATION_LABELS[result['class'].value]}"
+            )
         st.caption("Görünür kapanma oranı ile kapasite katsayısı ayrı kaydedilir.")
+
+    st.caption(
+        "Görüntü kaynağı: Visual Hydraulics Lab Blockage Dataset · "
+        "Iqbal ve ark. · CC BY 4.0 · DOI 10.5281/zenodo.7623641"
+    )
 
 with tabs[3]:
     st.subheader("Önce nerelere müdahale etmeliyiz?")

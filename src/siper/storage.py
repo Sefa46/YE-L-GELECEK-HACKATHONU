@@ -34,3 +34,8 @@ def load_actions() -> list[Action]:
 
 def load_teams() -> list[Team]:
     return [Team.model_validate(item) for item in _read_json("teams.json")]
+
+
+def load_vision_samples() -> list[dict[str, str]]:
+    path = project_root() / "data" / "fixtures" / "open_dataset" / "vision_samples.json"
+    return json.loads(path.read_text(encoding="utf-8"))

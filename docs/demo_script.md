@@ -10,7 +10,7 @@
 
 ## 0:55–1:20 — Gözlem güveni
 
-`Gözlem & AI` sekmesinde gelen kamera görüntüsü ile işaretlenmiş tıkanıklık bölgesini yan yana göster. Ardından operatör kontrolünü aç ve görünür kapanma ile hidrolik kapasitenin ayrı değerler olduğunu anlat.
+`Gözlem & AI` sekmesinde CC BY 4.0 lisanslı VHBD görüntü akışını göster. Açık, kısmi ve tıkalı kayıtlar arasında geçiş yap; gelen görüntü ile işaretlenmiş tıkanıklık bölgesini yan yana göster. Ardından operatör kontrolünü aç.
 
 ## 1:20–1:50 — Risk, fayda ve kombinasyon
 

@@ -23,9 +23,11 @@ Bu sıra, sonraki geliştirme kararları için ana öncelik listesidir. Bir aşa
 
 ## P2 — Görüntü analizi
 
-**Durum:** Bekliyor
+**Durum:** Başladı
 
-- Lisansı doğrulanmış gerçek görüntü kümesi kullan.
+- CC BY 4.0 lisanslı VHBD kaynağından açık, kısmi ve tıkalı 6 görüntülük arayüz alt kümesi eklendi.
+- Renk-bölge tabanlı başlangıç işaretlemesi ve operatör doğrulama akışı çalışıyor.
+- Trabzon veya benzer saha görüntüleriyle laboratuvar–saha farkını test et.
 - Otomatik tıkanıklık tahmini, `unknown` sonucu ve operatör düzeltmesini destekle.
 - Ayrı test kümesinde hata matrisi, precision, recall ve F1 raporla.
 - Görünür kapanmayı hidrolik kapasiteye doğrudan kopyalama.

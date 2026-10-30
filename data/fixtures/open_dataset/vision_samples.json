@@ -1,0 +1,50 @@
+[
+  {
+    "id": "VHBD-B01",
+    "name": "Menfez kaydı 01",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_01.png",
+    "dataset_class": "severe",
+    "sha256": "0c0488c73a0e58472cad056df1371ce0f9a614a206480147c23c10c1ab271b9f",
+    "original_filename": "vlcsnap-2020-04-09-15h50m20s506_box_0.png"
+  },
+  {
+    "id": "VHBD-B02",
+    "name": "Menfez kaydı 02",
+    "path": "data/fixtures/open_dataset/vhbd_blocked_02.png",
+    "dataset_class": "severe",
+    "sha256": "05c2f83728782ec0ec9a4c0998dda2b051d3ce367cea4c1399b2a31667b16331",
+    "original_filename": "vlcsnap-2020-04-13-12h10m38s532_box_0.png"
+  },
+  {
+    "id": "VHBD-P01",
+    "name": "Menfez kaydı 03",
+    "path": "data/fixtures/open_dataset/vhbd_partial_01.png",
+    "dataset_class": "partial",
+    "sha256": "6b889db43755ca42d3b2a98f978dc5a58600a9ede13dcd358cdfa71e88baf863",
+    "original_filename": "vlcsnap-2020-04-10-10h17m32s662_box_1.png"
+  },
+  {
+    "id": "VHBD-P02",
+    "name": "Menfez kaydı 04",
+    "path": "data/fixtures/open_dataset/vhbd_partial_02.png",
+    "dataset_class": "partial",
+    "sha256": "c3ace199cffb2a688958270aef509a9b36eefbe3b61d65489fba4ab2327e045f",
+    "original_filename": "WIN_20200330_11_44_57_Pro_box_0.png"
+  },
+  {
+    "id": "VHBD-C01",
+    "name": "Menfez kaydı 05",
+    "path": "data/fixtures/open_dataset/vhbd_clear_01.png",
+    "dataset_class": "unblocked",
+    "sha256": "4790965a300487e179e0d7d56366a3334dc49e7a28bdcc20a3e461367df61cd1",
+    "original_filename": "vlcsnap-2020-04-10-10h08m07s794_box_0.png"
+  },
+  {
+    "id": "VHBD-C02",
+    "name": "Menfez kaydı 06",
+    "path": "data/fixtures/open_dataset/vhbd_clear_02.png",
+    "dataset_class": "unblocked",
+    "sha256": "35967143f895959149826da53a1743bb36a3ab9e8a35b8f548b81906ccd72c79",
+    "original_filename": "WIN_20200330_10_07_58_Pro_box_0.png"
+  }
+]

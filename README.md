@@ -34,7 +34,7 @@ python scripts/run_swmm_validation.py
 `Sentetik yağış → Kaynak etiketli gözlem → Bağlı drenaj ağı → SWMM doğrulaması + proxy karar modeli → Müdahale kombinasyonu → İki ekipli plan → İş emri → Yeni gözlemle doğrulama → Yeniden planlama`
 
 - 10 bağlı varlık: mazgal, menfez, kolektör, açık kanal, depolama, pompa, boru ve çıkış.
-- İki görsel fixture, yeni görüntü yükleme ve tıkanıklık bölgesi işaretleme ekranı.
+- CC BY 4.0 lisanslı VHBD kaynağından 6 laboratuvar görüntüsü, galeri, yeni görüntü yükleme ve tıkanıklık bölgesi işaretleme ekranı.
 - Görünür kapanma ile hidrolik kapasiteyi ayrı tutan veri sözleşmesi.
 - Tekli faydaları körlemesine toplamayan kombinasyon simülasyonu.
 - Yetkinlik, ekipman, yol ve 120 dakika sınırına uyan iki ekipli plan.
@@ -61,6 +61,7 @@ Proxy sonuçlarının sabit etiketi **`HEURISTIC / NOT HYDRAULICALLY VALIDATED`*
 - `app.py`: Türkçe, yedi sekmeli Streamlit demo.
 - `src/siper/`: veri sözleşmeleri, ağ, hava, proxy model, risk, eylem, optimizasyon ve iş akışı.
 - `data/fixtures/`: çevrimdışı sentetik ağ, olay, ekip, eylem ve görseller.
+- `data/fixtures/open_dataset/`: VHBD açık veri alt kümesi, sınıf kataloğu ve lisans atfı.
 - `data/swmm/`: küçük SWMM ağı ve tekrar üretilebilir doğrulama sonuçları.
 - `scripts/run_swmm_validation.py`: baz ve múhale koşullarını yeniden çalıştırır.
 - `tests/`: plandaki P0 kabul testleri.
@@ -79,6 +80,6 @@ Gelecek doğrulama/entegrasyon çalışmaları için ana kaynaklar:
 - [SWMM 5.2 dokümantasyonu](https://usepa.github.io/Stormwater-Management-Model/)
 - [PySWMM](https://pyswmm.github.io/pyswmm/)
 - [OR-Tools VRPTW](https://developers.google.com/optimization/routing/vrptw)
-- [Zenodo menfez tıkanıklığı veri seti](https://zenodo.org/records/7623641) — bu depoya indirilmemiştir.
+- [VHBD/SIC menfez tıkanıklığı veri seti](https://doi.org/10.5281/zenodo.7623641) — CC BY 4.0 lisanslı altı görüntülük alt küme kullanılır.
 
-Görsel fixture'lar yalnız demo içindir; gerçek saha gözlemi veya CV doğruluk kanıtı değildir. Büyük/harici veri `data/external/` altında Git dışında tutulur.
+VHBD görüntüleri kontrollü hidrolik laboratuvarında kaydedilmiştir; Trabzon saha gözlemi veya model doğruluk kanıtı değildir. Büyük/harici veri `data/external/` altında Git dışında tutulur.

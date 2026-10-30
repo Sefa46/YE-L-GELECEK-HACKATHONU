@@ -61,6 +61,8 @@ def mark_obstruction_regions(
     # Join nearby leaf pixels and remove isolated camera noise.
     mask_image = mask_image.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.MinFilter(5))
     mask = np.asarray(mask_image) > 0
+    if float(mask.mean()) < 0.06:
+        mask = np.zeros_like(mask)
     y_coords, x_coords = np.where(mask)
 
     annotated = image.convert("RGBA")

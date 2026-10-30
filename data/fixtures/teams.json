@@ -1,0 +1,4 @@
+[
+  {"id":"T1","name":"Kuzey Müdahale Ekibi","skills":["mazgal_bakim","menfez_bakim","kolektor_inceleme"],"equipment":["el_aletleri","vakum_araci","cctv"],"start_asset_id":"I1"},
+  {"id":"T2","name":"Güney Teknik Ekibi","skills":["mazgal_bakim","kanal_bakim","pompa_operasyonu","hidrolik_operator"],"equipment":["el_aletleri","mini_ekskavator","pompa_kiti","tablet"],"start_asset_id":"PS1"}
+]

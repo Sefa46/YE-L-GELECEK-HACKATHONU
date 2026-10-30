@@ -1,0 +1,10 @@
+{
+  "event_id": "WX-DEMO-001",
+  "name": "Şiddetli Yağış Uyarısı — Demo Senaryosu",
+  "starts_at": "2026-10-30T16:30:00+03:00",
+  "horizon_minutes": 120,
+  "hourly_rain_mm": [24.0, 31.0, 18.0],
+  "scenario_id": "synthetic_high_rain_v1",
+  "source": "synthetic_scenario",
+  "reliability_note": "Canlı veya resmî MGM uyarısı değildir; çevrimdışı deterministik demo verisidir."
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timedelta
 from html import escape
 from zoneinfo import ZoneInfo
@@ -195,6 +196,24 @@ def render_status_cards(items: list[tuple[str, str]]) -> None:
         for label, value in items
     )
     st.html(f'<div class="status-grid">{cards}</div>')
+
+
+@st.fragment(run_every=0.8)
+def render_pulsing_drainage_map(
+    figure: go.Figure, base_sizes: list[int]
+) -> None:
+    animated_figure = go.Figure(figure)
+    pulse_on = int(time.time() / 0.8) % 2 == 0
+    animated_figure.data[1].marker.size = [
+        size + 8 if pulse_on else size for size in base_sizes
+    ]
+    animated_figure.data[1].marker.opacity = 0.56 if pulse_on else 0.98
+    st.plotly_chart(
+        animated_figure,
+        width="stretch",
+        key="drainage_network_map",
+        config={"displayModeBar": True, "scrollZoom": True},
+    )
 
 
 st.html(
@@ -432,7 +451,7 @@ with tabs[0]:
             st.dataframe(pd.DataFrame(forecast_rows), width="stretch", hide_index=True)
 
 with tabs[1]:
-    st.subheader("Bağlantılı drenaj ağı")
+    st.html('<h2 class="status-heading">Bağlantılı drenaj ağı</h2>')
     diagnostics = network_diagnostics(assets)
     map_risks = asset_risk_scores(assets, baseline.node_impact)
     maximum_risk = max(map_risks.values())
@@ -447,11 +466,14 @@ with tabs[1]:
         if st.session_state.asset_observations[asset.id]["class"] == "partial"
     }
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Düğüm", diagnostics["node_count"])
-    c2.metric("Bağlantı", diagnostics["edge_count"])
-    c3.metric("Ciddi tıkalı", len(severe_ids))
-    c4.metric("Kısmi tıkalı", len(partial_ids))
+    render_status_cards(
+        [
+            ("Düğüm", str(diagnostics["node_count"])),
+            ("Bağlantı", str(diagnostics["edge_count"])),
+            ("Ciddi tıkalı", str(len(severe_ids))),
+            ("Kısmi tıkalı", str(len(partial_ids))),
+        ]
+    )
 
     map_view = st.radio(
         "Harita görünümü",
@@ -601,6 +623,7 @@ with tabs[1]:
             "zoom": 13.4,
         },
         height=620,
+        uirevision="drainage-network-map",
         margin={"l": 0, "r": 0, "t": 10, "b": 0},
         legend={
             "orientation": "h",
@@ -620,31 +643,7 @@ with tabs[1]:
             else 18
             for asset in assets
         ]
-        pulse_sizes = [size + 8 for size in base_sizes]
-        pulse_script = f"""
-        const graph = document.getElementById('{{plot_id}}');
-        let pulseOn = false;
-        window.setInterval(() => {{
-            pulseOn = !pulseOn;
-            Plotly.restyle(
-                graph,
-                {{
-                    'marker.size': [pulseOn ? {json.dumps(pulse_sizes)} : {json.dumps(base_sizes)}],
-                    'marker.opacity': pulseOn ? 0.58 : 0.98
-                }},
-                [1]
-            );
-        }}, 750);
-        """
-        st.html(
-            map_figure.to_html(
-                full_html=False,
-                include_plotlyjs="cdn",
-                config={"displayModeBar": True, "scrollZoom": True},
-                post_script=pulse_script,
-            ),
-            unsafe_allow_javascript=True,
-        )
+        render_pulsing_drainage_map(map_figure, base_sizes)
         st.caption(
             "Yanıp sönen durum işaretleri: kırmızı ciddi tıkalı, sarı kısmi tıkalı, "
             "yeşil açık. Noktanın üzerine gelince bağlı görüntü kaydı ve risk bilgisi görünür."
@@ -653,6 +652,7 @@ with tabs[1]:
         st.plotly_chart(
             map_figure,
             width="stretch",
+            key="drainage_type_map",
             config={"displayModeBar": True, "scrollZoom": True},
         )
 

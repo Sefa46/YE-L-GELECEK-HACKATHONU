@@ -1374,7 +1374,7 @@ with tabs[4]:
         "Algoritma; ekiplerin araç kapasitesi, personel yetkinliği, yol süresi ve ağ hidrolik risk puanını birleştirerek en yüksek taşkın önleme faydasını optimize eder."
     )
 
-    total_personnel = sum(team.personnel_count for team in teams)
+    total_personnel = sum(getattr(team, "personnel_count", 3) for team in teams)
     total_vehicles = len(teams)
 
     render_status_cards(
@@ -1398,10 +1398,12 @@ with tabs[4]:
         with team_column:
             with st.container(border=True):
                 st.markdown(f"#### 👷 {team.name}")
+                personnel_count = getattr(team, "personnel_count", 3)
+                vehicle_name = getattr(team, "vehicle", "Kombine Acil Müdahale Aracı")
                 st.markdown(
                     f"""
-                    - **Görevli Personel:** {team.personnel_count} Kişi
-                    - **Tahsis Edilen Araç:** {team.vehicle}
+                    - **Görevli Personel:** {personnel_count} Kişi
+                    - **Tahsis Edilen Araç:** {vehicle_name}
                     - **Mevcut Ekipman:** {', '.join(team.equipment).replace('_', ' ').capitalize()}
                     - **Uzmanlık:** {', '.join(team.skills).replace('_', ' ').capitalize()}
                     - **Çıkış / Konuşlanma:** {asset_map[team.start_asset_id].name}
@@ -1440,11 +1442,12 @@ with tabs[4]:
         action = action_map[assignment.action_id]
         asset = asset_map[action.asset_id]
         team = team_map[assignment.team_id]
+        team_veh = getattr(team, "vehicle", "Kombine Vidanjör").split("(")[0].strip()
         priority_explanation_rows.append(
             {
                 "Hedef Nokta": asset.name,
                 "Tür": ASSET_STYLES.get(asset.type.value, (asset.type.value,))[0],
-                "Atanan Ekip & Araç": f"{team.name} ({team.vehicle.split('(')[0].strip()})",
+                "Atanan Ekip & Araç": f"{team.name} ({team_veh})",
                 "Önceliklendirme Gerekçesi": priority_reason(asset),
                 "Beklenen Hidrolik Katkı": f"{action.capacity_factor_after*100:.0f}% Kapasiteye Çıkarılacak",
             }

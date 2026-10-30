@@ -231,10 +231,12 @@ def render_observation_status_cards(
 
 
 def render_pulsing_drainage_map(
-    figure: go.Figure, base_sizes: list[int]
+    figure: go.Figure,
+    base_sizes: list[int] | None = None,
+    legend_items: list[tuple[str, str]] | None = None,
+    alt_text: str = "Trabzon drenaj ağı haritası",
 ) -> None:
     line_trace = figure.data[0]
-    marker_trace = figure.data[1]
     line_segments: list[list[list[float]]] = []
     current_segment: list[list[float]] = []
     for lon, lat in zip(line_trace.lon, line_trace.lat, strict=True):
@@ -247,25 +249,54 @@ def render_pulsing_drainage_map(
     if len(current_segment) > 1:
         line_segments.append(current_segment)
 
-    pulse_markers = [
-        {
-            "lon": float(lon),
-            "lat": float(lat),
-            "color": str(color),
-            "size": int(size),
-            "id": str(asset_id),
-            "details": str(details),
-        }
-        for lon, lat, color, size, asset_id, details in zip(
-            marker_trace.lon,
-            marker_trace.lat,
-            marker_trace.marker.color,
-            base_sizes,
-            marker_trace.text,
-            marker_trace.hovertext,
-            strict=True,
+    def repeated_values(value, count: int) -> list:
+        if isinstance(value, str) or not hasattr(value, "__iter__"):
+            return [value] * count
+        return list(value)
+
+    pulse_markers = []
+    size_offset = 0
+    for marker_trace in figure.data[1:]:
+        marker_count = len(marker_trace.lon)
+        colors = repeated_values(marker_trace.marker.color, marker_count)
+        if base_sizes is None:
+            sizes = repeated_values(marker_trace.marker.size, marker_count)
+        else:
+            sizes = base_sizes[size_offset : size_offset + marker_count]
+            size_offset += marker_count
+        pulse_markers.extend(
+            {
+                "lon": float(lon),
+                "lat": float(lat),
+                "color": str(color),
+                "size": int(size),
+                "id": str(asset_id),
+                "category": str(marker_trace.name),
+                "details": str(details),
+            }
+            for lon, lat, color, size, asset_id, details in zip(
+                marker_trace.lon,
+                marker_trace.lat,
+                colors,
+                sizes,
+                marker_trace.text,
+                marker_trace.hovertext,
+                strict=True,
+            )
         )
+
+    if legend_items is None:
+        legend_items = [
+            (str(trace.name), str(repeated_values(trace.marker.color, 1)[0]))
+            for trace in figure.data[1:]
+        ]
+    legend_payload = [
+        {"label": label, "color": color} for label, color in legend_items
     ]
+
+    def json_for_script(value) -> str:
+        return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c")
+
     map_html = """
     <!doctype html>
     <html lang="tr">
@@ -328,6 +359,11 @@ def render_pulsing_drainage_map(
                 font-size: 12px;
                 line-height: 1.65;
             }
+            .siper-legend--dense {
+                display: grid;
+                grid-template-columns: repeat(2, max-content);
+                column-gap: 13px;
+            }
             .siper-legend__dot {
                 display: inline-block;
                 width: 10px;
@@ -335,10 +371,36 @@ def render_pulsing_drainage_map(
                 margin-right: 6px;
                 border-radius: 50%;
             }
-            .leaflet-tooltip {
-                max-width: 310px;
-                white-space: normal;
-                line-height: 1.42;
+            .siper-info-card {
+                width: 280px;
+                max-height: 220px;
+                overflow: auto;
+                padding: 11px 13px;
+                border-radius: 9px;
+                background: rgba(255, 255, 255, 0.96);
+                box-shadow: 0 2px 10px rgba(15, 23, 42, 0.32);
+                color: #172033;
+                font-size: 12px;
+                line-height: 1.48;
+            }
+            .siper-info-card__hint {
+                color: #526174;
+                font-weight: 650;
+            }
+            .leaflet-popup-content {
+                width: 280px !important;
+                margin: 14px 17px;
+                color: #172033;
+                font-size: 12px;
+                line-height: 1.48;
+            }
+            .leaflet-tooltip.siper-marker-tooltip {
+                padding: 5px 8px;
+                border: 0;
+                border-radius: 6px;
+                box-shadow: 0 1px 5px rgba(15, 23, 42, 0.25);
+                font-weight: 700;
+                white-space: nowrap;
             }
             @keyframes siper-pulse {
                 0% { transform: scale(0.72); opacity: 0.95; }
@@ -352,6 +414,7 @@ def render_pulsing_drainage_map(
         <script>
             const lineSegments = __LINE_SEGMENTS__;
             const markers = __PULSE_MARKERS__;
+            const legendItems = __LEGEND_ITEMS__;
             const map = L.map('drainage-map', {
                 center: [41.0040, 39.7420],
                 zoom: 13,
@@ -372,6 +435,16 @@ def render_pulsing_drainage_map(
                 }).addTo(map);
             });
 
+            const infoCard = L.control({ position: 'bottomleft' });
+            let infoBox;
+            infoCard.onAdd = () => {
+                infoBox = L.DomUtil.create('div', 'siper-info-card');
+                infoBox.innerHTML = '<div class="siper-info-card__hint">Detaylar için bir altyapı noktasının üzerine gelin veya noktaya tıklayın.</div>';
+                L.DomEvent.disableClickPropagation(infoBox);
+                return infoBox;
+            };
+            infoCard.addTo(map);
+
             markers.forEach((marker, index) => {
                 const markerHtml = `
                     <div class="siper-marker" style="--marker-color:${marker.color}; --marker-size:${marker.size}px; --pulse-delay:-${(index % 5) * 0.18}s">
@@ -383,9 +456,21 @@ def render_pulsing_drainage_map(
                     iconSize: [marker.size, marker.size],
                     iconAnchor: [marker.size / 2, marker.size / 2]
                 });
-                L.marker([marker.lat, marker.lon], { icon })
-                    .addTo(map)
-                    .bindTooltip(marker.details, { direction: 'top', sticky: true, opacity: 0.98 });
+                const mapMarker = L.marker([marker.lat, marker.lon], { icon }).addTo(map);
+                mapMarker.bindTooltip(`<b>${marker.id}</b> · ${marker.category}`, {
+                    direction: 'auto',
+                    className: 'siper-marker-tooltip',
+                    opacity: 0.98
+                });
+                mapMarker.bindPopup(marker.details, {
+                    maxWidth: 330,
+                    minWidth: 280,
+                    autoPan: true,
+                    autoPanPadding: [40, 40]
+                });
+                mapMarker.on('mouseover', () => {
+                    infoBox.innerHTML = marker.details;
+                });
             });
 
             if (markers.length) {
@@ -396,10 +481,10 @@ def render_pulsing_drainage_map(
             const legend = L.control({ position: 'topright' });
             legend.onAdd = () => {
                 const box = L.DomUtil.create('div', 'siper-legend');
-                box.innerHTML = `
-                    <div><span class="siper-legend__dot" style="background:#dc2626"></span>Ciddi tıkalı</div>
-                    <div><span class="siper-legend__dot" style="background:#eab308"></span>Kısmi tıkalı</div>
-                    <div><span class="siper-legend__dot" style="background:#16a34a"></span>Açık / normal</div>`;
+                if (legendItems.length > 5) box.classList.add('siper-legend--dense');
+                box.innerHTML = legendItems.map((item) =>
+                    `<div><span class="siper-legend__dot" style="background:${item.color}"></span>${item.label}</div>`
+                ).join('');
                 return box;
             };
             legend.addTo(map);
@@ -410,15 +495,17 @@ def render_pulsing_drainage_map(
     </body>
     </html>
     """.replace(
-        "__LINE_SEGMENTS__", json.dumps(line_segments, ensure_ascii=False)
+        "__LINE_SEGMENTS__", json_for_script(line_segments)
     ).replace(
-        "__PULSE_MARKERS__", json.dumps(pulse_markers, ensure_ascii=False)
+        "__PULSE_MARKERS__", json_for_script(pulse_markers)
+    ).replace(
+        "__LEGEND_ITEMS__", json_for_script(legend_payload)
     )
     st.iframe(
         map_html,
         width="stretch",
         height=640,
-        alt="Tıkanıklık durumlarını gösteren Trabzon drenaj ağı haritası",
+        alt=alt_text,
     )
 
 
@@ -887,17 +974,31 @@ with tabs[1]:
             else 18
             for asset in assets
         ]
-        render_pulsing_drainage_map(map_figure, base_sizes)
+        render_pulsing_drainage_map(
+            map_figure,
+            base_sizes,
+            legend_items=[
+                ("Ciddi tıkalı", OBSERVATION_COLORS["severe"]),
+                ("Kısmi tıkalı", OBSERVATION_COLORS["partial"]),
+                ("Açık / normal", OBSERVATION_COLORS["unblocked"]),
+            ],
+            alt_text="Tıkanıklık durumlarını gösteren Trabzon drenaj ağı haritası",
+        )
         st.caption(
             "Yanıp sönen durum işaretleri: kırmızı ciddi tıkalı, sarı kısmi tıkalı, "
             "yeşil açık. Noktanın üzerine gelince bağlı görüntü kaydı ve risk bilgisi görünür."
         )
     else:
-        st.plotly_chart(
+        render_pulsing_drainage_map(
             map_figure,
-            width="stretch",
-            key="drainage_type_map",
-            config={"displayModeBar": True, "scrollZoom": True},
+            legend_items=[
+                (label, color) for label, color, _ in ASSET_STYLES.values()
+            ],
+            alt_text="Altyapı türlerini gösteren Trabzon drenaj ağı haritası",
+        )
+        st.caption(
+            "Yanıp sönen renkler altyapı türlerini gösterir. Noktanın üzerine "
+            "gelince bilgi kartı güncellenir; noktaya tıklayınca ayrıntı penceresi açılır."
         )
 
     network_table = pd.DataFrame(

@@ -1,10 +1,10 @@
 {
   "event_id": "WX-DEMO-001",
-  "name": "Şiddetli Yağış Uyarısı — Demo Senaryosu",
-  "starts_at": "2026-10-30T16:30:00+03:00",
-  "horizon_minutes": 120,
-  "hourly_rain_mm": [24.0, 31.0, 18.0],
-  "scenario_id": "synthetic_high_rain_v1",
+  "name": "Trabzon Şiddetli Yağış & Sel Erken Uyarısı (Ertesi Gün Hazırlık Senaryosu)",
+  "starts_at": "2026-10-31T09:00:00+03:00",
+  "horizon_minutes": 720,
+  "hourly_rain_mm": [35.0, 48.0, 32.0, 22.0, 15.0],
+  "scenario_id": "trabzon_ertesi_gun_sel_hazirlik_v2",
   "source": "synthetic_scenario",
-  "reliability_note": "Canlı veya resmî MGM uyarısı değildir; çevrimdışı deterministik demo verisidir."
+  "reliability_note": "KTÜ Yeşil Gelecek Hackathonu için hazırlanmış deterministik 24 saat öncesi afet hazırlık senaryosudur."
 }

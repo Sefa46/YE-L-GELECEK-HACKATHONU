@@ -1324,7 +1324,7 @@ with tabs[3]:
                 "En etkili tek müdahale",
                 asset_map[highest_benefit_action.asset_id].name,
             ),
-            ("Başlangıçtaki ağ baskısı", f"{baseline.total_impact_index:.1f} puan"),
+            ("Kritik Müdahale Noktası", f"{len(actions)} Nokta"),
         ]
     )
 
@@ -1379,12 +1379,11 @@ with tabs[4]:
 
     render_status_cards(
         [
-            ("Kullanılabilir Süre", f"{planning_deadline} dk"),
-            ("Aktif Ekip Sayısı", f"{len(teams)} Ekip"),
-            ("Müdahale Edecek Personel", f"{total_personnel} Kişi"),
-            ("Müdahale Aracı", f"{total_vehicles} Özel Araç"),
-            ("Planlanan Öncelikli Görev", f"{len(plan.assignments)} Nokta"),
-            ("Ağ Taşkın Risk Azalımı", f"{plan.simulated_benefit:.1f} Puan"),
+            ("Kullanılabilir Hazırlık Süresi", f"{planning_deadline} dk"),
+            ("Aktif Ekip Sayısı", f"{len(teams)} Bölge Ekibi"),
+            ("Müdahale Edecek Personel", f"{total_personnel} Uzman"),
+            ("Müdahale Aracı", f"{total_vehicles} Özel Ekipmanlı Araç"),
+            ("Atanan Kritik Görev", f"{len(plan.assignments)} Nokta"),
         ]
     )
 
@@ -1477,113 +1476,95 @@ with tabs[4]:
         )
 
 with tabs[5]:
-    st.html('<h2 class="status-heading">Sahadaki görevleri adım adım takip edin</h2>')
+    st.html('<h2 class="status-heading">Sahadaki Görevleri Ekip Bazında Takip Edin ve Onaylayın</h2>')
     st.caption(
-        "Planlanan iş emirlerinin ekibini, konumunu ve son durumunu tek ekrandan izleyin."
+        "Her ekibin üzerine atanan görevleri sırayla inceleyin; çalışma bittiğinde 'Tamamlandı' ve 'Doğrulandı' olarak işaretleyin."
     )
-    step_a, step_b, step_c = st.columns(3)
-    step_a.info("**1. Görevi seçin**\n\nTakip etmek istediğiniz iş emrini açın.")
-    step_b.info("**2. Tamamlanmayı bildirin**\n\nEkip çalışmayı bitirdiğinde saha bildirimini girin.")
-    step_c.info("**3. Sonucu doğrulayın**\n\nYeni gözlemden sonra kalan görevler güncellensin.")
 
     if "orders" not in st.session_state:
         st.session_state.orders = create_work_orders(plan)
-    order_ids = [order.id for order in st.session_state.orders]
-    if not order_ids:
-        st.info("Yağış başlangıcına kadar tamamlanabilecek bir iş emri bulunmuyor.")
-    else:
-        order_rows = []
-        for listed_order in st.session_state.orders:
-            listed_action = action_map[listed_order.action_id]
-            order_rows.append(
-                {
-                    "İş emri": listed_order.id,
-                    "Görev": listed_action.name,
-                    "Konum": asset_map[listed_action.asset_id].name,
-                    "Ekip": team_map[listed_order.team_id].name,
-                    "Durum": STATUS_LABELS.get(
-                        listed_order.status.value, listed_order.status.value
-                    ),
-                }
-            )
-        with st.container(border=True):
-            st.markdown("#### İş emirlerinin güncel durumu")
-            st.dataframe(
-                pd.DataFrame(order_rows),
-                width="stretch",
-                hide_index=True,
-            )
-
-        selected_order_id = st.selectbox(
-            "Takip edilecek iş emri",
-            order_ids,
-            format_func=lambda order_id: (
-                f"{order_id} · {action_map[order_id.removeprefix('WO-')].name} · "
-                f"{STATUS_LABELS.get(st.session_state.orders[order_ids.index(order_id)].status.value, st.session_state.orders[order_ids.index(order_id)].status.value)}"
-            ),
-        )
-        index = order_ids.index(selected_order_id)
-        order = st.session_state.orders[index]
-        action = action_map[order.action_id]
-        asset = asset_map[action.asset_id]
-
-        with st.container(border=True):
-            st.markdown("#### Seçilen iş emri")
-            render_status_cards(
-                [
-                    ("Görev", action.name),
-                    ("Konum", asset.name),
-                    ("Sorumlu ekip", team_map[order.team_id].name),
-                    ("Durum", STATUS_LABELS.get(order.status.value, order.status.value)),
-                ]
-            )
-
-            button_a, button_b = st.columns(2)
-            if button_a.button(
-                "Çalışma tamamlandı",
-                disabled=order.status != WorkOrderStatus.ASSIGNED,
-                width="stretch",
-            ):
-                st.session_state.orders[index] = mark_completed(order)
-                st.rerun()
-            if button_b.button(
-                "Yeni gözlemle doğrula ve planı güncelle",
-                disabled=order.status != WorkOrderStatus.COMPLETED_PENDING_VERIFICATION,
-                type="primary",
-                width="stretch",
-            ):
-                st.session_state.orders[index] = verify_order(
-                    order,
-                    {"class": "unblocked", "source": "operator_input", "note": "Saha doğrulaması"},
+    
+    # Tüm 12 görevin atandığından emin ol
+    existing_action_ids = {o.action_id for o in st.session_state.orders}
+    new_orders = list(st.session_state.orders)
+    for assignment in plan.assignments:
+        if assignment.action_id not in existing_action_ids:
+            new_orders.append(
+                WorkOrder(
+                    id=f"WO-{assignment.action_id}",
+                    action_id=assignment.action_id,
+                    team_id=assignment.team_id,
+                    status=WorkOrderStatus.ASSIGNED,
+                    event_log=[{"time": datetime.now().isoformat(), "status": "assigned", "reason": "Plana dahil edildi", "source": "operator_input"}],
                 )
-                st.session_state.replanned = replan_after_verification(
-                    assets,
-                    event,
-                    actions,
-                    teams,
-                    st.session_state.orders,
-                    deadline_minutes=planning_deadline,
+            )
+    st.session_state.orders = new_orders
+
+    total_orders = len(st.session_state.orders)
+    verified_orders = sum(1 for o in st.session_state.orders if o.status == WorkOrderStatus.VERIFIED)
+    pending_orders = sum(1 for o in st.session_state.orders if o.status == WorkOrderStatus.COMPLETED_PENDING_VERIFICATION)
+    active_orders = sum(1 for o in st.session_state.orders if o.status == WorkOrderStatus.ASSIGNED)
+
+    render_status_cards(
+        [
+            ("Toplam İş Emri", f"{total_orders} Görev"),
+            ("Tamamlanan & Doğrulanan", f"{verified_orders} Nokta"),
+            ("Onay Bekleyenler", f"{pending_orders} Görev"),
+            ("Sahada Devam Eden", f"{active_orders} Görev"),
+        ]
+    )
+
+    # Ekip bazında sekmeler / filtreler
+    team_tabs = st.tabs([f"👷 {team.name}" for team in teams])
+    for team_tab, team in zip(team_tabs, teams):
+        with team_tab:
+            team_orders = [o for o in st.session_state.orders if o.team_id == team.id]
+            if not team_orders:
+                st.info("Bu ekibe henüz görev atanmadı.")
+                continue
+
+            for idx, order in enumerate(team_orders, start=1):
+                action = action_map[order.action_id]
+                asset = asset_map[action.asset_id]
+                
+                status_icon = (
+                    "✅" if order.status == WorkOrderStatus.VERIFIED
+                    else "⏳" if order.status == WorkOrderStatus.COMPLETED_PENDING_VERIFICATION
+                    else "📍"
                 )
-                st.rerun()
-
-        with st.expander("İş emri geçmişi"):
-            event_log_df = pd.DataFrame(order.event_log).rename(
-                columns={"time": "Zaman", "status": "Durum", "reason": "Açıklama", "source": "Kaynak"}
-            )
-            event_log_df["Durum"] = event_log_df["Durum"].map(
-                lambda value: STATUS_LABELS.get(value, value)
-            )
-            st.dataframe(
-                event_log_df[["Zaman", "Durum", "Açıklama"]],
-                width="stretch",
-                hide_index=True,
-            )
-
-        if "replanned" in st.session_state:
-            new_plan = st.session_state.replanned
-            remaining_names = [action_map[action_id].name for action_id in new_plan.selected_action_ids]
-            st.success("Saha doğrulaması kaydedildi ve kalan görev planı güncellendi.")
-            st.write("**Sıradaki görevler:**", ", ".join(remaining_names) if remaining_names else "Görev kalmadı")
+                
+                with st.container(border=True):
+                    col_info, col_act = st.columns([2.5, 1.5])
+                    with col_info:
+                        st.markdown(f"##### {status_icon} #{idx}. {action.name}")
+                        st.caption(f"**Konum:** {asset.name} ({ASSET_STYLES.get(asset.type.value, (asset.type.value,))[0]}) · **Öncelik Sebebi:** {priority_reason(asset)}")
+                        st.write(f"**Durum:** `{STATUS_LABELS.get(order.status.value, order.status.value)}` | **İşlem Süresi:** {action.duration_minutes} dk")
+                    
+                    with col_act:
+                        all_indices = [i for i, o in enumerate(st.session_state.orders) if o.id == order.id]
+                        if all_indices:
+                            real_idx = all_indices[0]
+                            if order.status == WorkOrderStatus.ASSIGNED:
+                                if st.button("Sahada Tamamlandı Olarak İşaretle", key=f"btn_comp_{order.id}", width="stretch"):
+                                    st.session_state.orders[real_idx] = mark_completed(order)
+                                    st.rerun()
+                            elif order.status == WorkOrderStatus.COMPLETED_PENDING_VERIFICATION:
+                                if st.button("✅ Saha Gözlemiyle Doğrula & Onayla", key=f"btn_ver_{order.id}", type="primary", width="stretch"):
+                                    st.session_state.orders[real_idx] = verify_order(
+                                        order,
+                                        {"class": "unblocked", "source": "operator_input", "note": "Saha ekiplerince temizlik doğrulandı"}
+                                    )
+                                    st.session_state.replanned = replan_after_verification(
+                                        assets,
+                                        event,
+                                        actions,
+                                        teams,
+                                        st.session_state.orders,
+                                        deadline_minutes=planning_deadline,
+                                    )
+                                    st.rerun()
+                            else:
+                                st.success("✅ Görev Tamamlandı ve Doğrulandı")
 
 with tabs[6]:
     st.html('<h2 class="status-heading">Bu plan bize ne kazandırıyor?</h2>')
@@ -1622,17 +1603,15 @@ with tabs[6]:
         for asset in selected_assets
     )
 
+    # Operasyon takibinde doğrulanmış görev sayısı
+    verified_count = sum(1 for o in st.session_state.get("orders", []) if o.status == WorkOrderStatus.VERIFIED)
+
     render_status_cards(
         [
-            ("Tamamlanacak görev", str(len(plan.assignments))),
-            ("Görev alacak ekip", str(used_team_count)),
-            ("Öncelik verilen kritik nokta", str(critical_location_count)),
-            (
-                "Son görevin bitişi",
-                latest_finish_clock.strftime("%H:%M")
-                if plan.assignments
-                else "Görev yok",
-            ),
+            ("Planlanan Toplam Görev", f"{len(plan.assignments)} Müdahale"),
+            ("Kurtarılan Tehlikeli Nokta", f"{critical_location_count} Kritik Alan"),
+            ("Doğrulanan Saha Müdahalesi", f"{verified_count} Onaylı"),
+            ("Kalan Ağ Riski Azalımı", f"%{improvement_percent:.1f}"),
         ]
     )
 

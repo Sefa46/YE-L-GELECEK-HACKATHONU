@@ -205,6 +205,22 @@ st.html(
             opacity: 0.6;
             vertical-align: baseline;
         }
+
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0.35rem;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            min-height: 3.5rem;
+            padding-left: 1.05rem;
+            padding-right: 1.05rem;
+        }
+
+        .stTabs [data-baseweb="tab"] p {
+            font-size: 1.18rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
     </style>
     <h1 class="siper-title-line">
         SİPER AI

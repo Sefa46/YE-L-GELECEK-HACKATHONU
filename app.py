@@ -24,6 +24,12 @@ from siper.storage import (
     project_root,
 )
 from siper.vision import assess_obstruction, mark_obstruction_regions
+from siper.weather import (
+    WeatherProviderError,
+    fetch_open_meteo_forecast,
+    forecast_to_weather_event,
+    next_rain_hour,
+)
 from siper.workflow import (
     create_work_orders,
     mark_completed,
@@ -34,10 +40,34 @@ from siper.workflow import (
 
 st.set_page_config(page_title="SİPER AI", layout="wide")
 
+
+@st.cache_data(ttl=900, show_spinner=False)
+def load_live_forecast():
+    return fetch_open_meteo_forecast()
+
+
+weather_mode = st.sidebar.radio(
+    "Yağış veri kaynağı",
+    ["Canlı Open-Meteo", "Çevrimdışı senaryo"],
+)
+if st.sidebar.button("Canlı tahmini yenile", disabled=weather_mode != "Canlı Open-Meteo"):
+    load_live_forecast.clear()
+    st.rerun()
+
 assets = load_assets()
 actions = load_actions()
 teams = load_teams()
-event = load_weather()
+offline_event = load_weather()
+live_forecast = None
+live_forecast_error = None
+if weather_mode == "Canlı Open-Meteo":
+    try:
+        live_forecast = load_live_forecast()
+    except WeatherProviderError as exc:
+        live_forecast_error = str(exc)
+
+live_event = forecast_to_weather_event(live_forecast) if live_forecast else None
+event = live_event or offline_event
 vision_samples = load_vision_samples()
 model = ProxyHydraulicModel(assets, event)
 baseline = model.run()
@@ -140,6 +170,23 @@ with tabs[0]:
     st.subheader("Trabzon yağış ve hazırlık durumu")
     st.write("**Konum:** Trabzon · Ortahisar ve sahil drenaj hattı")
 
+    if live_event:
+        st.caption(
+            f"Veri kaynağı: Open-Meteo saatlik tahmin · Son alım: "
+            f"{live_forecast.fetched_at:%d.%m.%Y %H:%M}"
+        )
+    elif live_forecast:
+        st.caption(
+            "Canlı Open-Meteo tahmininde önümüzdeki 48 saat için yağış olayı "
+            "oluşmadı; operasyon modeli çevrimdışı senaryoyu kullanıyor."
+        )
+    elif live_forecast_error:
+        st.caption(
+            "Open-Meteo'ya erişilemedi; operasyon modeli çevrimdışı senaryoyu kullanıyor."
+        )
+    else:
+        st.caption("Veri kaynağı: Çevrimdışı planlama senaryosu")
+
     cols = st.columns(5)
     cols[0].metric("Yerel saat", current_time.strftime("%H:%M"))
     cols[1].metric("Yağış başlangıcı", rain_start.strftime("%H:%M"))
@@ -152,6 +199,33 @@ with tabs[0]:
         f"Hazırlanan planda {len(teams)} ekip için {len(plan.assignments)} görev bulunuyor; "
         f"ağda {len(assets)} altyapı noktası takip ediliyor."
     )
+
+    if live_forecast:
+        current_forecast = live_forecast.hours[0]
+        upcoming_rain = next_rain_hour(live_forecast)
+        live_cols = st.columns(4)
+        live_cols[0].metric(
+            "Sıcaklık",
+            f"{current_forecast.temperature_c:.1f} °C"
+            if current_forecast.temperature_c is not None
+            else "—",
+        )
+        live_cols[1].metric(
+            "Yağış olasılığı",
+            f"%{current_forecast.precipitation_probability_pct:.0f}"
+            if current_forecast.precipitation_probability_pct is not None
+            else "—",
+        )
+        live_cols[2].metric(
+            "Rüzgâr",
+            f"{current_forecast.wind_speed_kmh:.1f} km/sa"
+            if current_forecast.wind_speed_kmh is not None
+            else "—",
+        )
+        live_cols[3].metric(
+            "Sıradaki yağış",
+            upcoming_rain.time.strftime("%d.%m %H:%M") if upcoming_rain else "Beklenmiyor",
+        )
 
     weather_rows = []
     for hour_index, rain_mm in enumerate(event.hourly_rain_mm):
@@ -198,6 +272,19 @@ with tabs[0]:
         width="stretch",
         hide_index=True,
     )
+
+    if live_forecast:
+        forecast_rows = [
+            {
+                "Saat": hour.time,
+                "Yağış (mm)": hour.precipitation_mm,
+                "Olasılık (%)": hour.precipitation_probability_pct,
+                "Sıcaklık (°C)": hour.temperature_c,
+            }
+            for hour in live_forecast.hours[:24]
+        ]
+        with st.expander("24 saatlik canlı tahmini göster"):
+            st.dataframe(pd.DataFrame(forecast_rows), width="stretch", hide_index=True)
 
 with tabs[1]:
     st.subheader("Bağlantılı drenaj ağı")
@@ -782,9 +869,12 @@ with tabs[6]:
     )
     comparison_df = pd.DataFrame(comparison)
     baseline_impact = float(comparison_df.iloc[0]["impact_index"])
-    comparison_df["improvement_percent"] = comparison_df["impact_index"].map(
-        lambda impact: 100 * (baseline_impact - impact) / baseline_impact
-    )
+    if baseline_impact > 0:
+        comparison_df["improvement_percent"] = comparison_df["impact_index"].map(
+            lambda impact: 100 * (baseline_impact - impact) / baseline_impact
+        )
+    else:
+        comparison_df["improvement_percent"] = 0.0
     recommended = comparison_df.iloc[-1]
     improvement_percent = float(recommended["improvement_percent"])
     remaining_pressure = max(0.0, 100.0 - improvement_percent)

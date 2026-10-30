@@ -90,6 +90,27 @@ class WeatherEvent(BaseModel):
         return min(2.0, sum(self.hourly_rain_mm) / (len(self.hourly_rain_mm) * 20.0))
 
 
+class ForecastHour(BaseModel):
+    time: datetime
+    precipitation_mm: float = Field(ge=0)
+    precipitation_probability_pct: float | None = Field(default=None, ge=0, le=100)
+    temperature_c: float | None = None
+    weather_code: int | None = None
+    wind_speed_kmh: float | None = Field(default=None, ge=0)
+
+
+class WeatherForecast(BaseModel):
+    provider: str
+    location_name: str
+    latitude: float
+    longitude: float
+    timezone: str
+    fetched_at: datetime
+    hours: list[ForecastHour]
+    source: SourceType = SourceType.FORECAST
+    reliability_note: str
+
+
 class Action(BaseModel):
     id: str
     asset_id: str

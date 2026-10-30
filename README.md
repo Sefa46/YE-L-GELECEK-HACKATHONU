@@ -31,7 +31,12 @@ python scripts/run_swmm_validation.py
 
 ## Çalışan P0 zinciri
 
-`Sentetik yağış → Kaynak etiketli gözlem → Bağlı drenaj ağı → SWMM doğrulaması + proxy karar modeli → Müdahale kombinasyonu → İki ekipli plan → İş emri → Yeni gözlemle doğrulama → Yeniden planlama`
+`Canlı Open-Meteo tahmini veya sentetik yağış → Kaynak etiketli gözlem → Bağlı drenaj ağı → SWMM doğrulaması + proxy karar modeli → Müdahale kombinasyonu → İki ekipli plan → İş emri → Yeni gözlemle doğrulama → Yeniden planlama`
+
+Durum Merkezi varsayılan olarak Trabzon/Ortahisar için Open-Meteo'nun 48 saatlik
+saatlik tahminini alır. Tahmin `forecast`, çevrimdışı fixture ise
+`synthetic_scenario` kaynağıyla ayrı tutulur. API erişilemezse uygulama
+çevrimdışı senaryoya geri döner; canlı tahmin resmî MGM uyarısı olarak sunulmaz.
 
 - 10 bağlı varlık: mazgal, menfez, kolektör, açık kanal, depolama, pompa, boru ve çıkış.
 - CC BY 4.0 lisanslı VHBD kaynağından 6 laboratuvar görüntüsü, galeri, yeni görüntü yükleme ve tıkanıklık bölgesi işaretleme ekranı.

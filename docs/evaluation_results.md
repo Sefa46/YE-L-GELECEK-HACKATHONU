@@ -46,7 +46,7 @@ Bu sayılar gerçek SWMM motorunun bu küçük model için ürettiği fiziksel s
 ## Test sonucu
 
 ```text
-24 passed
+28 passed
 ```
 
 Test paketi yerel Python 3.11 ortamında çalıştırılmıştır.
@@ -65,7 +65,8 @@ Test paketi yerel Python 3.11 ortamında çalıştırılmıştır.
 | İki ekipli planlama | Çalışıyor | Deterministik sınırlı arama |
 | İş emri ve yeniden planlama | Çalışıyor | Yeni operatör gözlemi zorunlu |
 | Baseline karşılaştırması | Çalışıyor | Aynı fixture koşulları |
-| Canlı Open-Meteo/MGM | Yapılmadı | P1 |
+| Canlı Open-Meteo | Çalışıyor | 48 saatlik saatlik tahmin, 15 dakika önbellek ve çevrimdışı fallback |
+| Resmî MGM uyarısı | Yapılmadı | Yalnız doğrulanmış kayıt veya operatör girdisiyle eklenecek |
 | SWMM/PySWMM | Çalışıyor | Fiziksel m³, düğüm taşması, derinlik ve süreklilik hatası üretiliyor |
 | Öğrenilmiş CV modeli | Yapılmadı | Doğruluk metriği üretilmedi |
 | Gerçek belediye/donanım bağlantısı | MVP kapsamı dışı | Sentetik görüntü, ağ ve operasyon akışı bilinçli demo tercihidir; dış sisteme komut gönderilmez |

@@ -42,9 +42,9 @@ Bu sıra, sonraki geliştirme kararları için ana öncelik listesidir. Bir aşa
 
 ## P4 — Meteorolojik veri entegrasyonu
 
-**Durum:** Bekliyor
+**Durum:** Open-Meteo tamamlandı; MGM kaydı bekliyor
 
-- Gerçek zamanlı tahmin ile sentetik senaryoyu veri kaynağına göre ayır.
-- Open-Meteo verisini zaman damgası ve erişim hatası yönetimiyle al.
+- Gerçek zamanlı tahmin ile sentetik senaryo veri kaynağına göre ayrılıyor.
+- Open-Meteo verisi zaman damgası ve erişim hatası yönetimiyle alınıyor.
 - Resmî MGM uyarısını yalnız doğrulanmış kayıt veya operatör girdisiyle göster.
-- Ağ erişilemezse çevrimdış fixture ile uygulamayı çalışır tut.
+- Ağ erişilemezse çevrimdışı fixture ile uygulama çalışır kalıyor.

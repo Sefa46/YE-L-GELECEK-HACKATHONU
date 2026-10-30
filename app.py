@@ -186,7 +186,7 @@ def priority_reason(asset) -> str:
 title_column, description_column = st.columns(
     [1, 4],
     gap="small",
-    vertical_alignment="top",
+    vertical_alignment="bottom",
     wrap=False,
 )
 with title_column:

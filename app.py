@@ -213,13 +213,13 @@ st.html(
         }
 
         .stTabs [data-baseweb="tab"] {
-            min-height: 3.5rem;
-            padding-left: 1.05rem;
-            padding-right: 1.05rem;
+            min-height: 4rem;
+            padding-left: 1.3rem;
+            padding-right: 1.3rem;
         }
 
         .stTabs [data-baseweb="tab"] p {
-            font-size: 1.18rem;
+            font-size: 1.25rem;
             font-weight: 650;
             white-space: nowrap;
         }

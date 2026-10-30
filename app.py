@@ -19,7 +19,7 @@ from siper.observations import (
 )
 from siper.optimizer import optimize_plan
 from siper.risk import asset_risk_scores, intervention_benefits
-from siper.schemas import ObservationClass, WorkOrderStatus
+from siper.schemas import ObservationClass, WorkOrder, WorkOrderStatus
 from siper.storage import (
     load_actions,
     load_assets,
@@ -45,6 +45,13 @@ from siper.workflow import (
 
 st.set_page_config(page_title="SİPER AI", layout="wide")
 
+# Sayfa yenilendiğinde (F5 / Cmd+R) veya sıfırlama parametresi geldiğinde görev durumlarını sıfırla
+if st.query_params.get("reload_reset") == "1":
+    st.session_state.pop("orders", None)
+    st.session_state.pop("replanned", None)
+    st.session_state.pop("asset_observations", None)
+    del st.query_params["reload_reset"]
+
 
 @st.cache_data(ttl=900, show_spinner=False)
 def load_live_forecast():
@@ -58,6 +65,20 @@ weather_mode = st.sidebar.radio(
 if st.sidebar.button("Canlı tahmini yenile", disabled=weather_mode != "Canlı Open-Meteo"):
     load_live_forecast.clear()
     st.rerun()
+
+if st.sidebar.button("🔄 Senaryo ve Görevleri Baştan Başlat"):
+    st.session_state.pop("orders", None)
+    st.session_state.pop("replanned", None)
+    st.session_state.pop("asset_observations", None)
+    st.rerun()
+
+if "tracked_weather_mode" not in st.session_state:
+    st.session_state.tracked_weather_mode = weather_mode
+elif st.session_state.tracked_weather_mode != weather_mode:
+    st.session_state.tracked_weather_mode = weather_mode
+    st.session_state.pop("orders", None)
+    st.session_state.pop("replanned", None)
+    st.session_state.pop("asset_observations", None)
 
 base_assets = load_assets()
 actions = load_actions()
@@ -100,17 +121,18 @@ event = live_event if weather_mode == "Canlı Open-Meteo" and live_event else of
 model = ProxyHydraulicModel(assets, event)
 baseline = model.run()
 local_timezone = ZoneInfo("Europe/Istanbul")
-current_time = datetime.now(local_timezone)
 rain_start = event.starts_at.astimezone(local_timezone)
 
-# Planlama süresi hesabı:
-# Çevrimdışı senaryoda sabit horizon_minutes (120 dk senaryo hazırlığı) kullanılır.
-# Canlı Open-Meteo'da yaklaşan yağış saatine kalan dakika veya operasyon penceresi (min 60, maks 180 dk) esas alınır.
+# Planlama süresi ve zaman hesabı:
+# Çevrimdışı senaryoda test gereği yerel saat yağış başlangıcından tam 24 saat öncesine sabitlenir (24 saatlik afet hazırlık fazı).
+# Canlı Open-Meteo'da gerçek anlık saat ve yaklaşan yağış saatine kalan dakika veya operasyon penceresi (min 60, maks 180 dk) esas alınır.
 if weather_mode == "Canlı Open-Meteo":
+    current_time = datetime.now(local_timezone)
     remaining_minutes = int((rain_start - current_time).total_seconds() // 60)
     planning_deadline = max(30, min(180, remaining_minutes)) if remaining_minutes > 0 else 60
 else:
-    planning_deadline = event.horizon_minutes
+    current_time = rain_start - timedelta(hours=24)
+    planning_deadline = 1440  # 24 saat (1440 dakika) hazırlık ve müdahale süresi
 
 plan = optimize_plan(model, actions, teams, deadline_minutes=planning_deadline)
 asset_map = {asset.id: asset for asset in assets}
@@ -638,7 +660,84 @@ st.html(
             font-size: 1.25rem;
             vertical-align: 0.08rem;
         }
+
+        @keyframes siper-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.75);
+                border-color: #dc2626;
+                background-color: rgba(220, 38, 38, 0.12);
+            }
+            50% {
+                box-shadow: 0 0 25px 6px rgba(239, 68, 68, 0.55);
+                border-color: #ef4444;
+                background-color: rgba(220, 38, 38, 0.28);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.75);
+                border-color: #dc2626;
+                background-color: rgba(220, 38, 38, 0.12);
+            }
+        }
+
+        @keyframes siper-blink-text {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.88; transform: scale(1.02); }
+        }
+
+        .siper-blinking-alert {
+            animation: siper-pulse 1.8s infinite ease-in-out;
+            border: 2.5px solid #dc2626;
+            border-radius: 0.85rem;
+            padding: 1.1rem 1.4rem;
+            margin: 0.6rem 0 1.3rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.2rem;
+            text-align: center;
+            background-color: rgba(220, 38, 38, 0.15);
+        }
+
+        .siper-blinking-alert__title {
+            color: #ef4444;
+            font-size: 1.35rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            line-height: 1.3;
+            animation: siper-blink-text 1.8s infinite ease-in-out;
+            text-transform: uppercase;
+        }
+
+        .siper-blinking-alert__desc {
+            color: #fca5a5;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 0.4rem;
+            letter-spacing: 0.02em;
+        }
+
+        .siper-blinking-alert__icon {
+            font-size: 2.3rem;
+            user-select: none;
+        }
     </style>
+    <script>
+    (function() {
+        try {
+            const nav = performance.getEntriesByType('navigation');
+            if (nav.length > 0 && nav[0].type === 'reload') {
+                if (!sessionStorage.getItem('siper_reloaded_once')) {
+                    sessionStorage.setItem('siper_reloaded_once', '1');
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('reload_reset', '1');
+                    window.location.replace(url.href);
+                }
+            } else {
+                sessionStorage.removeItem('siper_reloaded_once');
+            }
+        } catch(e) {}
+    })();
+    </script>
     <h1 class="siper-title-line">
         SİPER AI
         <span class="siper-title-line__description">Yapay Zekâ Destekli, Öngörülü Kentsel Yağmur Suyu ve Taşkın Müdahale Yönetim Sistemi</span>
@@ -659,6 +758,23 @@ tabs = st.tabs(
 )
 
 with tabs[0]:
+    st.html(
+        """
+        <div class="siper-blinking-alert">
+            <div class="siper-blinking-alert__icon">⚠️</div>
+            <div>
+                <div class="siper-blinking-alert__title">
+                    ⚠️ DİKKAT: 1 GÜN SONRA ŞİDDETLİ SAĞANAK VE SEL RİSKİ BEKLENİYOR ⚠️
+                </div>
+                <div class="siper-blinking-alert__desc">
+                    METEOROLOJİK ERKEN UYARI: TRABZON VE KIYI ŞERİDİNDE 24 SAAT SONRA ŞİDDETLİ AFET BOYUTUNDA YAĞIŞ (152 mm) ÖNGÖRÜLMEKTEDİR.<br>
+                    TÜM KRİTİK DRENAJ NOKTALARI, MENFEZLER VE POMPA İSTASYONLARI İÇİN 24 SAAT ÖNCESİ TAŞKIN ÖNLEME PROTOKOLÜ VE SAHA EKİPLERİ TEYAKKUZDA!
+                </div>
+            </div>
+            <div class="siper-blinking-alert__icon">⚠️</div>
+        </div>
+        """
+    )
     rain_end = rain_start + timedelta(hours=len(event.hourly_rain_mm))
 
     st.html(
@@ -677,10 +793,22 @@ with tabs[0]:
         st.caption(
             "Open-Meteo'ya erişilemedi; operasyon modeli çevrimdışı senaryoyu kullanıyor."
         )
+
+    day_diff = (rain_start.date() - current_time.date()).days
+    rain_start_text = (
+        f"{rain_start.strftime('%H:%M')} (Yarın)"
+        if day_diff > 0
+        else rain_start.strftime("%H:%M")
+    )
+    local_time_text = (
+        f"{current_time.strftime('%H:%M')} (Bugün / Sabit 24s Öncesi)"
+        if weather_mode != "Canlı Open-Meteo"
+        else current_time.strftime("%H:%M")
+    )
     render_status_cards(
         [
-            ("Yerel saat", current_time.strftime("%H:%M")),
-            ("Yağış başlangıcı", rain_start.strftime("%H:%M")),
+            ("Yerel saat", local_time_text),
+            ("Yağış başlangıcı", rain_start_text),
             ("Kalan süre", remaining_time_text(rain_start, current_time)),
             ("Yağışın bitişi", rain_end.strftime("%H:%M")),
             ("Toplam yağış", f"{sum(event.hourly_rain_mm):.1f} mm"),
@@ -688,9 +816,13 @@ with tabs[0]:
     )
 
     rain_message = (
-        f"Yağış {rain_start.strftime('%H:%M')} itibarıyla başladı."
-        if current_time >= rain_start
-        else f"Yağışın {rain_start.strftime('%H:%M')} civarında başlaması bekleniyor."
+        f"Yağışın başlamasına tam 24 saat (1 gün) bulunmaktadır; 24 saat öncesi hazırlık ve saha müdahale fazı yürütülüyor."
+        if weather_mode != "Canlı Open-Meteo"
+        else (
+            f"Yağış {rain_start.strftime('%H:%M')} itibarıyla başladı."
+            if current_time >= rain_start
+            else f"Yağışın {rain_start.strftime('%H:%M')} civarında başlaması bekleniyor."
+        )
     )
     st.info(
         f"{rain_message} "
@@ -1368,6 +1500,22 @@ with tabs[3]:
         )
 
 with tabs[4]:
+    st.html(
+        """
+        <div class="siper-blinking-alert">
+            <div class="siper-blinking-alert__icon">⚠️</div>
+            <div>
+                <div class="siper-blinking-alert__title">
+                    ⚠️ DİKKAT: 1 GÜN SONRA ŞİDDETLİ SAĞANAK VE SEL RİSKİ BEKLENİYOR ⚠️
+                </div>
+                <div class="siper-blinking-alert__desc">
+                    24 SAAT ÖNCESİ KRİTİK SEFERBERLİK PLANI: YAĞIŞ BAŞLAMADAN ÖNCE TÜM KRİTİK NOKTALARA MÜDAHALE EDİLMESİ İÇİN EKİP VE EKİPMANLAR EN YÜKSEK RİSK AZALTIMI SAĞLAYACAK ŞEKİLDE KONUŞLANDIRILMIŞTIR.
+                </div>
+            </div>
+            <div class="siper-blinking-alert__icon">⚠️</div>
+        </div>
+        """
+    )
     st.html('<h2 class="status-heading">Yağış Öncesi Ekip ve Kaynak Operasyon Planı</h2>')
     st.caption(
         f"Seçili meteoroloji modu: **{weather_mode}** · Yağış başlangıcına kadar müdahale için kalan süre: **{planning_deadline} dakika**. "
@@ -1376,10 +1524,11 @@ with tabs[4]:
 
     total_personnel = sum(getattr(team, "personnel_count", 3) for team in teams)
     total_vehicles = len(teams)
+    prep_time_label = "24 Saat (1440 dk)" if weather_mode != "Canlı Open-Meteo" else f"{planning_deadline} dk"
 
     render_status_cards(
         [
-            ("Kullanılabilir Hazırlık Süresi", f"{planning_deadline} dk"),
+            ("Kullanılabilir Hazırlık Süresi", prep_time_label),
             ("Aktif Ekip Sayısı", f"{len(teams)} Bölge Ekibi"),
             ("Müdahale Edecek Personel", f"{total_personnel} Uzman"),
             ("Müdahale Aracı", f"{total_vehicles} Özel Ekipmanlı Araç"),
@@ -1458,6 +1607,95 @@ with tabs[4]:
             hide_index=True,
         )
 
+    # Acil müdahale gerektirmeyen noktaların detaylı gerekçeleri (Rakım, Eğim ve Düşük Hasar Riski)
+    st.markdown("### 🛡️ Acil Müdahale Gerektirmeyen Altyapı Noktaları ve Gerekçeleri")
+    st.caption(
+        "Ağdaki 22 noktanın 12'si acil temizlik/müdahale sırasına alınmıştır. Kalan 10 nokta ise "
+        "**yüksek rakımda yer almaları (doğal eğimle cazibeli tahliye)**, **yerleşim yoğunluğunun veya can/mal hasar riskinin çok düşük olması** "
+        "ve **mevcut hidrolik kapasitelerinin açık ve güvenli olması** nedeniyle acil operasyon gerektirmemekte, kaynak optimizasyonu doğrultusunda pasif izlemede tutulmaktadır."
+    )
+    unintervened_assets = [
+        asset for asset in assets
+        if asset.id not in {action_map[assignment.action_id].asset_id for assignment in plan.assignments}
+    ]
+    UNINTERVENED_DETAILS = {
+        "I8": (
+            "Yüksek Rakım & Dik Eğim Avantajı",
+            "Boztepe yamaçlarında 185m yüksek kotta yer alır. Yüksek topoğrafik eğim sayesinde yüzey suyu yerçekimiyle hızla akar; yerleşim birimlerinde su birikintisi veya can/mal hasarı riski bulunmaz.",
+            "🟢 Güvenli (Cazibeli Hızlı Akış)",
+        ),
+        "I5": (
+            "Düşük Risk & Yaya Aksı Bağlantısı",
+            "Geniş meydan yaya aksında yer alır; yağmur suyu menfez bağlantısı açık olup anlık taşkın tehlikesi ve araç trafiğini aksatma riski bulunmamaktadır.",
+            "🟢 Açık / Güvenli Seviye",
+        ),
+        "I9": (
+            "Düşük Hasar Riski & Doğal Eğim",
+            "Uzun Sokak yaya bölgesinde yer alır; doğrudan kot düşüşüyle sahil ana kolektörüne bağlanır. Bölgede bodrum kat yerleşimi veya kritik tesis riski yoktur.",
+            "🟢 Açık / Normal",
+        ),
+        "I10": (
+            "Yüksek Kotlu Kampüs Ana Hattı",
+            "KTÜ ana kampüs girişinde yüksek kotta yer alır; yerleşim ve can riski taşımayan geniş doğal vadi tahliye hattına sahiptir.",
+            "🟢 Açık / Doğal Tahliye",
+        ),
+        "I11": (
+            "İkincil Toplayıcı & Düşük Yoğunluk",
+            "Öğrenci yolu ikincil drenaj hattıdır; ana vadi menfezinin hidrolik yükünü doğrudan zorlamaz, tıkanıklık riski önemsiz seviyededir.",
+            "🟢 Açık / Normal",
+        ),
+        "I3": (
+            "Yeterli Deşarj Kotu & Açık Hat",
+            "Sanayi girişindeki deşarj kotu dere yatağına yakındır; suyun doğal akış yönünde hidrolik darboğaz veya geri tepme riski oluşmaz.",
+            "🟢 Açık / Güvenli",
+        ),
+        "I6": (
+            "Kritik Güzergâhtan Bağımsız Hat",
+            "Otogar çevre hattı olup alt geçit, köprü veya acil hastane aksında değildir; taşkın riski alt kritik eşiğin altındadır.",
+            "🟢 Açık / Normal",
+        ),
+        "C3": (
+            "Geniş Kesitli Ana Menfez",
+            "Değirmendere vadi tabanındaki geniş kesitli betonarme menfezdir; akış kapasitesi %95 üzerinde olup tortu/tıkanıklık riski taşımamaktadır.",
+            "🟢 Güvenli Kapasite",
+        ),
+        "P2": (
+            "Kapalı Derin İletim Hattı",
+            "Cazibeli derin boru iletim hattı olup yüzey taşkınına neden olmaz; hidrolik basma yüksekliği güvenli çalışma sınırındadır.",
+            "🟢 Kesintisiz Akış",
+        ),
+        "O1": (
+            "Doğrudan Deniz Deşarjı (Karadeniz)",
+            "Liman ana sahil tahliye çıkışıdır. Deniz seviyesinde serbest çıkış sağlar; tıkanma veya yüzeye geri taşma riski yoktur.",
+            "🟢 Serbest Deşarj",
+        ),
+    }
+
+    unintervened_rows = []
+    for asset in unintervened_assets:
+        info = UNINTERVENED_DETAILS.get(
+            asset.id,
+            (
+                "Yüksek Kot / Düşük Hasar Riski",
+                "Topoğrafik eğim avantajı ve yerleşim yoğunluğunun düşük olması sebebiyle acil risk teşkil etmemektedir.",
+                "🟢 Güvenli",
+            ),
+        )
+        unintervened_rows.append(
+            {
+                "Altyapı Noktası": asset.name,
+                "Tür": ASSET_STYLES.get(asset.type.value, (asset.type.value,))[0],
+                "Müdahale Gerektirmeme Sebebi": info[0],
+                "Rakım & Risk Değerlendirmesi": info[1],
+                "Mevcut Durum": info[2],
+            }
+        )
+    st.dataframe(
+        pd.DataFrame(unintervened_rows),
+        width="stretch",
+        hide_index=True,
+    )
+
     with st.expander(f"⏳ Zaman veya Kaynak Kısıtı Nedeniyle Sıraya Alınamayan Noktalar ({len(plan.rejected)})"):
         st.caption("Bu noktalar yağış başlangıcına kadar intikal süresi yetmediği veya gerekli araç/ekip başka acil noktada olduğu için yedek plana bırakılmıştır.")
         st.dataframe(
@@ -1476,10 +1714,17 @@ with tabs[4]:
         )
 
 with tabs[5]:
-    st.html('<h2 class="status-heading">Sahadaki Görevleri Ekip Bazında Takip Edin ve Onaylayın</h2>')
-    st.caption(
-        "Her ekibin üzerine atanan görevleri sırayla inceleyin; çalışma bittiğinde 'Tamamlandı' ve 'Doğrulandı' olarak işaretleyin."
-    )
+    col_head, col_reset = st.columns([3, 1])
+    with col_head:
+        st.html('<h2 class="status-heading">Sahadaki Görevleri Ekip Bazında Takip Edin ve Onaylayın</h2>')
+        st.caption(
+            "Her ekibin üzerine atanan görevleri sırayla inceleyin; çalışma bittiğinde 'Tamamlandı' ve 'Doğrulandı' olarak işaretleyin."
+        )
+    with col_reset:
+        if st.button("🔄 Tüm Görevleri Baştan Başlat", key="btn_reset_orders_tab5", help="Tüm görev durumlarını sıfırlar"):
+            st.session_state.pop("orders", None)
+            st.session_state.pop("replanned", None)
+            st.rerun()
 
     if "orders" not in st.session_state:
         st.session_state.orders = create_work_orders(plan)
@@ -1603,8 +1848,9 @@ with tabs[6]:
         for asset in selected_assets
     )
 
-    # Operasyon takibinde doğrulanmış görev sayısı
-    verified_count = sum(1 for o in st.session_state.get("orders", []) if o.status == WorkOrderStatus.VERIFIED)
+    # Operasyon takibinde doğrulanmış görev sayısı ve detayları
+    verified_orders_list = [o for o in st.session_state.get("orders", []) if o.status == WorkOrderStatus.VERIFIED]
+    verified_count = len(verified_orders_list)
 
     render_status_cards(
         [
@@ -1614,6 +1860,27 @@ with tabs[6]:
             ("Kalan Ağ Riski Azalımı", f"%{improvement_percent:.1f}"),
         ]
     )
+
+    if verified_orders_list:
+        with st.container(border=True):
+            st.markdown(f"#### 🏆 Doğrulanan ve Güvenceye Alınan Altyapı Noktaları ({verified_count} Nokta)")
+            st.caption("Operasyon takibinde ekiplerce sahada tamamlanıp operatör incelemesiyle onaylanan ve taşkın riski önlenen noktalar:")
+            verified_display_rows = []
+            for v_order in verified_orders_list:
+                v_action = action_map[v_order.action_id]
+                v_asset = asset_map[v_action.asset_id]
+                v_team = team_map[v_order.team_id]
+                verified_display_rows.append(
+                    {
+                        "Kurtarılan / Güvenceye Alınan Nokta": v_asset.name,
+                        "Tamamlanan Müdahale": v_action.name,
+                        "Müdahale Eden Ekip": v_team.name,
+                        "Ulaşılan Kapasite": f"%{v_action.capacity_factor_after*100:.0f}",
+                        "Önlenen Risk / Tehlike": priority_reason(v_asset),
+                        "Operasyon Onayı": "✅ Sahada Doğrulandı",
+                    }
+                )
+            st.dataframe(pd.DataFrame(verified_display_rows), width="stretch", hide_index=True)
 
     st.success(
         f"Plan uygulandığında ağ üzerindeki beklenen baskı yaklaşık %{improvement_percent:.1f} azalıyor. "

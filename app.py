@@ -183,19 +183,29 @@ def priority_reason(asset) -> str:
     return "; ".join(reasons).capitalize() if reasons else "Ağ akışı üzerinde etkili bir bağlantı noktası."
 
 
-title_column, description_column = st.columns(
-    [1, 4],
-    gap="small",
-    vertical_alignment="bottom",
-    wrap=False,
+st.html(
+    """
+    <style>
+        .st-key-siper_header {
+            transform: translateY(-12px);
+        }
+    </style>
+    """
 )
-with title_column:
-    st.title("SİPER AI")
-with description_column:
-    st.caption(
-        "Yapay Zekâ Destekli, Öngörülü Kentsel Yağmur Suyu ve "
-        "Taşkın Müdahale Yönetim Sistemi"
+with st.container(key="siper_header"):
+    title_column, description_column = st.columns(
+        [1, 4],
+        gap="small",
+        vertical_alignment="bottom",
+        wrap=False,
     )
+    with title_column:
+        st.title("SİPER AI")
+    with description_column:
+        st.caption(
+            "Yapay Zekâ Destekli, Öngörülü Kentsel Yağmur Suyu ve "
+            "Taşkın Müdahale Yönetim Sistemi"
+        )
 
 tabs = st.tabs(
     [

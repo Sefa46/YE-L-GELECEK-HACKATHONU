@@ -233,21 +233,93 @@ def render_observation_status_cards(
 def render_pulsing_drainage_map(
     figure: go.Figure, base_sizes: list[int]
 ) -> None:
-    pulse_sizes = [size + 8 for size in base_sizes]
+    marker_trace = figure.data[1]
+    pulse_markers = [
+        {
+            "lon": float(lon),
+            "lat": float(lat),
+            "color": str(color),
+            "size": int(size),
+        }
+        for lon, lat, color, size in zip(
+            marker_trace.lon,
+            marker_trace.lat,
+            marker_trace.marker.color,
+            base_sizes,
+            strict=True,
+        )
+    ]
     pulse_script = f"""
     const graph = document.getElementById('{{plot_id}}');
-    let pulseOn = false;
-    window.setInterval(() => {{
-        pulseOn = !pulseOn;
-        Plotly.restyle(
-            graph,
-            {{
-                'marker.size': [pulseOn ? {json.dumps(pulse_sizes)} : {json.dumps(base_sizes)}],
-                'marker.opacity': pulseOn ? 0.56 : 0.98
-            }},
-            [1]
-        );
-    }}, 800);
+    const pulseMarkers = {json.dumps(pulse_markers)};
+
+    const installPulseOverlay = () => {{
+        const map = graph?._fullLayout?.map?._subplot?.map;
+        if (!map || !map.getContainer) {{
+            window.setTimeout(installPulseOverlay, 100);
+            return;
+        }}
+
+        const style = document.createElement('style');
+        style.textContent = `
+            .siper-pulse-layer {{
+                position: absolute;
+                inset: 0;
+                z-index: 4;
+                overflow: hidden;
+                pointer-events: none;
+            }}
+            .siper-pulse-marker {{
+                position: absolute;
+                transform: translate(-50%, -50%);
+                border: 2px solid rgba(255, 255, 255, 0.95);
+                border-radius: 999px;
+                background: var(--marker-color);
+                box-shadow: 0 1px 5px rgba(15, 23, 42, 0.38);
+            }}
+            .siper-pulse-marker::after {{
+                position: absolute;
+                inset: -2px;
+                content: '';
+                border: 3px solid var(--marker-color);
+                border-radius: inherit;
+                animation: siper-pulse 1.55s ease-out infinite;
+            }}
+            @keyframes siper-pulse {{
+                0% {{ transform: scale(0.8); opacity: 0.9; }}
+                72%, 100% {{ transform: scale(2.05); opacity: 0; }}
+            }}
+        `;
+        document.head.appendChild(style);
+
+        const layer = document.createElement('div');
+        layer.className = 'siper-pulse-layer';
+        map.getContainer().appendChild(layer);
+
+        const elements = pulseMarkers.map((marker) => {{
+            const element = document.createElement('div');
+            element.className = 'siper-pulse-marker';
+            element.style.setProperty('--marker-color', marker.color);
+            element.style.width = `${{marker.size}}px`;
+            element.style.height = `${{marker.size}}px`;
+            layer.appendChild(element);
+            return {{ marker, element }};
+        }});
+
+        const positionMarkers = () => {{
+            elements.forEach((item) => {{
+                const point = map.project([item.marker.lon, item.marker.lat]);
+                item.element.style.left = `${{point.x}}px`;
+                item.element.style.top = `${{point.y}}px`;
+            }});
+        }};
+
+        map.on('move', positionMarkers);
+        map.on('resize', positionMarkers);
+        positionMarkers();
+    }};
+
+    installPulseOverlay();
     """
     map_html = figure.to_html(
         full_html=False,

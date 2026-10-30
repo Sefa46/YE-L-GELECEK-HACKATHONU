@@ -1,0 +1,153 @@
+[TITLE]
+;; SİPER AI small physical drainage validation model
+;; Synthetic geometry and rainfall; SI units; not field calibrated.
+
+[OPTIONS]
+FLOW_UNITS           LPS
+INFILTRATION         HORTON
+FLOW_ROUTING         DYNWAVE
+LINK_OFFSETS         DEPTH
+MIN_SLOPE            0
+ALLOW_PONDING        NO
+SKIP_STEADY_STATE    NO
+START_DATE           10/30/2026
+START_TIME           00:00:00
+REPORT_START_DATE    10/30/2026
+REPORT_START_TIME    00:00:00
+END_DATE             10/30/2026
+END_TIME             02:00:00
+SWEEP_START          01/01
+SWEEP_END            12/31
+DRY_DAYS             0
+REPORT_STEP          00:01:00
+WET_STEP             00:01:00
+DRY_STEP             01:00:00
+ROUTING_STEP         00:00:10
+RULE_STEP            00:00:00
+INERTIAL_DAMPING     PARTIAL
+NORMAL_FLOW_LIMITED  BOTH
+FORCE_MAIN_EQUATION  H-W
+VARIABLE_STEP        0.75
+LENGTHENING_STEP     0
+MIN_SURFAREA         1.167
+MAX_TRIALS           8
+HEAD_TOLERANCE       0.0015
+SYS_FLOW_TOL         5
+LAT_FLOW_TOL         5
+MINIMUM_STEP         0.5
+THREADS              1
+
+[EVAPORATION]
+CONSTANT             0.0
+DRY_ONLY             NO
+
+[RAINGAGES]
+;;Name  Format     Interval SCF Source
+RG1     INTENSITY  0:05     1.0 TIMESERIES STORM
+
+[SUBCATCHMENTS]
+;;Name  Rain Gage Outlet Area  %Imperv Width %Slope CurbLen SnowPack
+SC_I1   RG1       I1     0.55  85      75    1.5    0
+SC_I2   RG1       I2     0.45  90      65    1.8    0
+SC_I3   RG1       I3     0.60  80      80    1.2    0
+
+[SUBAREAS]
+;;Subcatchment N-Imperv N-Perv S-Imperv S-Perv PctZero RouteTo PctRouted
+SC_I1           0.015    0.20   1.5      5.0    25      OUTLET
+SC_I2           0.015    0.20   1.5      5.0    25      OUTLET
+SC_I3           0.015    0.20   1.5      5.0    25      OUTLET
+
+[INFILTRATION]
+;;Subcatchment MaxRate MinRate Decay DryTime MaxInfil
+SC_I1           75      10      4     7       0
+SC_I2           75      10      4     7       0
+SC_I3           75      10      4     7       0
+
+[JUNCTIONS]
+;;Name Elevation MaxDepth InitDepth SurDepth Aponded
+I1     10.00     0.45     0         0        0
+I2     10.10     0.45     0         0        0
+I3      9.80     0.55     0         0        0
+C1      9.00     0.65     0         0        0
+P1      8.20     0.75     0         0        0
+CH1     7.50     0.90     0         0        0
+
+[STORAGE]
+;;Name Elev. MaxDepth InitDepth Shape CurveName/Params N/A Fevap Psi Ksat IMD
+S1      6.50  1.50     0.20      FUNCTIONAL  80 0 0 0 0 0
+
+[OUTFALLS]
+;;Name Elevation Type Stage Data Gated Route To
+O1     5.20      FREE            NO
+
+[CONDUITS]
+;;Name FromNode ToNode Length Roughness InOffset OutOffset InitFlow MaxFlow
+L_I1   I1       C1     90     0.013     0        0         0        0
+L_I2   I2       C1     110    0.013     0        0         0        0
+L_I3   I3       P1     120    0.013     0        0         0        0
+L_C1   C1       P1     150    0.018     0        0         0        0
+L_P1   P1       CH1    180    0.015     0        0         0        0
+L_CH1  CH1      S1     140    0.020     0        0         0        0
+L_OUT  S1       O1     200    0.013     0        0         0        0
+
+[XSECTIONS]
+;;Link Shape    Geom1 Geom2 Geom3 Geom4 Barrels Culvert
+L_I1   CIRCULAR 0.28  0     0     0     1
+L_I2   CIRCULAR 0.26  0     0     0     1
+L_I3   CIRCULAR 0.30  0     0     0     1
+L_C1   CIRCULAR 0.32  0     0     0     1
+L_P1   CIRCULAR 0.40  0     0     0     1
+L_CH1  RECT_OPEN 0.55 0.75  0     0     1
+L_OUT  CIRCULAR 0.45  0     0     0     1
+
+[TIMESERIES]
+;;Name Date       Time Value
+STORM  10/30/2026 00:00 0
+STORM  10/30/2026 00:10 35
+STORM  10/30/2026 00:20 75
+STORM  10/30/2026 00:35 90
+STORM  10/30/2026 00:50 55
+STORM  10/30/2026 01:05 20
+STORM  10/30/2026 01:20 0
+STORM  10/30/2026 02:00 0
+
+[REPORT]
+INPUT      NO
+CONTROLS   NO
+SUBCATCHMENTS ALL
+NODES ALL
+LINKS ALL
+
+[TAGS]
+
+[MAP]
+DIMENSIONS 0 0 1000 600
+UNITS Meters
+
+[COORDINATES]
+I1   100 500
+I2   100 350
+I3   100 150
+C1   350 425
+P1   500 250
+CH1  650 250
+S1   800 250
+O1   950 250
+
+[POLYGONS]
+SC_I1 50 550
+SC_I1 250 550
+SC_I1 250 400
+SC_I1 50 400
+SC_I2 50 400
+SC_I2 250 400
+SC_I2 250 250
+SC_I2 50 250
+SC_I3 50 250
+SC_I3 250 250
+SC_I3 250 50
+SC_I3 50 50
+
+[SYMBOLS]
+RG1 500 550
+

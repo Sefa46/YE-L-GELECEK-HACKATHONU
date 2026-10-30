@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -707,6 +708,37 @@ with tabs[6]:
         margin={"l": 20, "r": 50, "t": 60, "b": 20},
     )
     st.plotly_chart(result_figure, width="stretch", config={"displayModeBar": False})
+
+    validation_path = project_root() / "data" / "swmm" / "validation_results.json"
+    if validation_path.exists():
+        swmm_results = json.loads(validation_path.read_text(encoding="utf-8"))
+        swmm_baseline = float(swmm_results["baseline"]["overflow_volume_m3"])
+        swmm_culvert = float(swmm_results["culvert_restored"]["overflow_volume_m3"])
+        swmm_portfolio = float(
+            swmm_results["three_upstream_restorations"]["overflow_volume_m3"]
+        )
+        with st.expander("SWMM hidrolik doğrulamasını göster"):
+            st.write(
+                "Aynı yağış altında küçük fiziksel drenaj modelinde hesaplanan "
+                "yüzey taşma hacimleri:"
+            )
+            swmm_a, swmm_b, swmm_c = st.columns(3)
+            swmm_a.metric("Müdahale yok", f"{swmm_baseline:.2f} m³")
+            swmm_b.metric(
+                "Menfez kapasitesi geri kazanılırsa",
+                f"{swmm_culvert:.2f} m³",
+                delta=f"-{100 * (swmm_baseline - swmm_culvert) / swmm_baseline:.1f}%",
+                delta_color="normal",
+            )
+            swmm_c.metric(
+                "Üç üst-hat múhalesi",
+                f"{swmm_portfolio:.2f} m³",
+                delta=f"-{100 * (swmm_baseline - swmm_portfolio) / swmm_baseline:.1f}%",
+                delta_color="normal",
+            )
+            st.caption(
+                "EPA SWMM 5.2.4 · Sentetik geometri ve yağış · Saha kalibrasyonu yapılmadı"
+            )
 
     with st.expander("Yöntemlerin görev karşılaştırmasını göster"):
         result_rows = []

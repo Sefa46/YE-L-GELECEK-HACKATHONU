@@ -120,7 +120,11 @@ class SimulationResult(BaseModel):
     node_inflow: dict[str, float]
     source: SourceType = SourceType.HEURISTIC_ESTIMATE
     model_label: str = "HEURISTIC / NOT HYDRAULICALLY VALIDATED"
-    overflow_volume_m3: None = None
+    overflow_volume_m3: float | None = Field(default=None, ge=0)
+    max_node_depth_m: dict[str, float] = Field(default_factory=dict)
+    continuity_error_pct: float | None = None
+    engine_version: str | None = None
+    flow_units: str | None = None
 
 
 class Assignment(BaseModel):

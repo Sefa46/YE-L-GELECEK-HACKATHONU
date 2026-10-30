@@ -24,6 +24,6 @@
 
 `Operasyon Takibi` sekmesinde bir işi önce `Tamamlandı bildir` ile bekleyen duruma getir. Sonra yeni gözlemle doğrula; yeni plan kimliği ve kalan görevleri göster.
 
-## 2:45–3:00 — Karşılaştırma
+## 2:45–3:00 — Karşılaştırma ve hidrolik doğrulama
 
-`Performans` sekmesinde B0/B1/B2/P tablosunu ve etki indekslerini göster.
+`Performans` sekmesinde yöntemlerin sağladığı yüzdesel faydayı göster. `SWMM hidrolik doğrulamasını göster` bölümünü açarak aynı yağışta baz `26.39 m³`, menfez múhalesi `5.31 m³` ve üç üst-hat múhalesi `3.66 m³` sonucunu göster.

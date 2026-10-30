@@ -36,9 +36,28 @@ baseline = model.run()
 local_timezone = ZoneInfo("Europe/Istanbul")
 current_time = datetime.now(local_timezone)
 rain_start = event.starts_at.astimezone(local_timezone)
-remaining_minutes = max(0, int((rain_start - current_time).total_seconds() // 60))
-planning_deadline = min(event.horizon_minutes, remaining_minutes) if remaining_minutes else 1
+live_remaining_minutes = max(0, int((rain_start - current_time).total_seconds() // 60))
+
+# Simülasyon / Demo modu ve süre yönetimi (session_state)
+if "simulation_mode" not in st.session_state:
+    st.session_state.simulation_mode = "Demo"
+if "demo_deadline_minutes" not in st.session_state:
+    st.session_state.demo_deadline_minutes = 90
+
+if st.session_state.simulation_mode == "Demo":
+    planning_deadline = st.session_state.demo_deadline_minutes
+else:
+    planning_deadline = min(event.horizon_minutes, live_remaining_minutes) if live_remaining_minutes else 1
+
 plan = optimize_plan(model, actions, teams, deadline_minutes=planning_deadline)
+
+# İş emirlerinin güncellenmesi veya başlatılması
+if "orders" not in st.session_state or st.session_state.get("last_plan_id") != plan.plan_id:
+    st.session_state.orders = create_work_orders(plan)
+    st.session_state.last_plan_id = plan.plan_id
+    if "replanned" in st.session_state:
+        del st.session_state.replanned
+
 asset_map = {asset.id: asset for asset in assets}
 action_map = {action.id: action for action in actions}
 team_map = {team.id: team for team in teams}
@@ -128,6 +147,36 @@ tabs = st.tabs(
 
 with tabs[0]:
     rain_end = rain_start + timedelta(hours=len(event.hourly_rain_mm))
+
+    with st.container(border=True):
+        mode_col, slider_col = st.columns([1, 2])
+        with mode_col:
+            selected_mode = st.radio(
+                "Simülasyon Modu",
+                ["Demo", "Canlı"],
+                index=0 if st.session_state.simulation_mode == "Demo" else 1,
+                horizontal=True,
+                help="Demo modunda yağışa kalan süreyi manuel belirleyerek ekip operasyon planını test edebilirsiniz.",
+            )
+            if selected_mode != st.session_state.simulation_mode:
+                st.session_state.simulation_mode = selected_mode
+                st.rerun()
+
+        with slider_col:
+            if st.session_state.simulation_mode == "Demo":
+                chosen_deadline = st.slider(
+                    "Yağışa Kalan Süre (dk)",
+                    min_value=30,
+                    max_value=180,
+                    value=st.session_state.demo_deadline_minutes,
+                    step=5,
+                    help="Kuzey ve Güney ekiplerinin müdahalelerini tamamlaması için simüle edilen süre.",
+                )
+                if chosen_deadline != st.session_state.demo_deadline_minutes:
+                    st.session_state.demo_deadline_minutes = chosen_deadline
+                    st.rerun()
+            else:
+                st.info(f"Canlı mod devrede. Gerçek saate göre hesaplanan kalan süre: **{live_remaining_minutes} dk**")
 
     st.subheader("Trabzon yağış ve hazırlık durumu")
     st.write("**Konum:** Trabzon · Ortahisar ve sahil drenaj hattı")
@@ -522,11 +571,18 @@ with tabs[4]:
         "Aşağıdaki görevler ekip yetkinliği, gerekli araç ve ulaşım süresi birlikte değerlendirilerek seçildi."
     )
 
-    p1, p2, p3, p4 = st.columns(4)
+    saved_capacity_pct = (
+        (plan.simulated_benefit / plan.baseline_impact_index * 100)
+        if plan.baseline_impact_index > 0
+        else 0.0
+    )
+
+    p1, p2, p3, p4, p5 = st.columns(5)
     p1.metric("Kullanılabilir süre", f"{planning_deadline} dk")
     p2.metric("Aktif ekip", len(teams))
     p3.metric("Planlanan görev", len(plan.assignments))
     p4.metric("Beklenen etki azalımı", f"{plan.simulated_benefit:.2f}")
+    p5.metric("Kurtarılan Ağ Kapasitesi", f"%{saved_capacity_pct:.1f}", delta=f"+%{saved_capacity_pct:.1f}")
 
     team_columns = st.columns(len(teams))
     for team_column, team in zip(team_columns, teams):
@@ -537,19 +593,25 @@ with tabs[4]:
         with team_column:
             with st.container(border=True):
                 st.markdown(f"### {team.name}")
-                st.caption(f"Başlangıç noktası: {asset_map[team.start_asset_id].name}")
+                st.caption(f"📍 Başlangıç noktası: **{asset_map[team.start_asset_id].name}**")
+                st.caption(f"Yetkinlikler: {', '.join(team.skills)}")
                 if not team_assignments:
-                    st.write("Bu süre içinde ekibe uygun görev bulunamadı.")
+                    st.warning("⚠️ Bu süre içinde ekibe uygun veya yetiştirilebilecek görev bulunamadı.")
                 for task_number, assignment in enumerate(team_assignments, start=1):
                     action = action_map[assignment.action_id]
                     asset = asset_map[action.asset_id]
                     clock_start = current_time + timedelta(minutes=assignment.start_minute)
                     clock_end = current_time + timedelta(minutes=assignment.end_minute)
-                    st.markdown(
-                        f"**{task_number}. {action.name}**  \n"
-                        f"{asset.name} · {clock_start:%H:%M}–{clock_end:%H:%M}  \n"
-                        f"Ulaşım: {assignment.travel_minutes} dk · Çalışma: {action.duration_minutes} dk"
-                    )
+                    with st.container(border=True):
+                        st.markdown(f"**Adım {task_number}: {action.name}**")
+                        st.write(f"🏢 **Konum:** {asset.name}")
+                        st.write(f"⏱️ **Zaman Çizelgesi:** {clock_start:%H:%M} – {clock_end:%H:%M} *(+{assignment.end_minute}. dk)*")
+                        st.write(f"🚗 **Seyahat Süresi:** {assignment.travel_minutes} dk")
+                        st.write(f"🛠️ **Müdahale Süresi:** {action.duration_minutes} dk")
+                        st.progress(
+                            min(1.0, assignment.end_minute / planning_deadline) if planning_deadline else 1.0,
+                            text=f"Kullanılan Süre: {assignment.end_minute}/{planning_deadline} dk",
+                        )
 
     selected_action_names = [action_map[action_id].name for action_id in plan.selected_action_ids]
     if selected_action_names:

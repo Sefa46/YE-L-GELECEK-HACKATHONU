@@ -131,6 +131,8 @@ class Team(BaseModel):
     skills: list[str]
     equipment: list[str]
     start_asset_id: str
+    personnel_count: int = Field(default=3, ge=1)
+    vehicle: str = Field(default="Kombine Kanal Açma Aracı")
 
 
 class SimulationResult(BaseModel):

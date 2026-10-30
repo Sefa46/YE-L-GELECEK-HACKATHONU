@@ -1,4 +1,20 @@
 [
-  {"id":"T1","name":"Kuzey Müdahale Ekibi","skills":["mazgal_bakim","menfez_bakim","kolektor_inceleme"],"equipment":["el_aletleri","vakum_araci","cctv"],"start_asset_id":"I1"},
-  {"id":"T2","name":"Güney Teknik Ekibi","skills":["mazgal_bakim","kanal_bakim","pompa_operasyonu","hidrolik_operator"],"equipment":["el_aletleri","mini_ekskavator","pompa_kiti","tablet"],"start_asset_id":"PS1"}
+  {
+    "id": "T1",
+    "name": "Kuzey Sahil & Merkez Müdahale Ekibi",
+    "skills": ["mazgal_bakim", "menfez_bakim", "kolektor_inceleme"],
+    "equipment": ["el_aletleri", "vakum_araci", "cctv"],
+    "start_asset_id": "I1",
+    "personnel_count": 4,
+    "vehicle": "Kombine Vidanjör & Vakum Aracı (61 KNK 101)"
+  },
+  {
+    "id": "T2",
+    "name": "Güney Vadi & Teknik Ekip",
+    "skills": ["mazgal_bakim", "kanal_bakim", "pompa_operasyonu", "hidrolik_operator"],
+    "equipment": ["el_aletleri", "mini_ekskavator", "pompa_kiti", "tablet"],
+    "start_asset_id": "PS1",
+    "personnel_count": 3,
+    "vehicle": "Mini Ekskavatörlü Acil Müdahale Kamyoneti (61 TIS 202)"
+  }
 ]

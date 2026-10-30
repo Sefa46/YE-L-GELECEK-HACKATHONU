@@ -96,14 +96,22 @@ if weather_mode == "Canlı Open-Meteo":
         live_forecast_error = str(exc)
 
 live_event = forecast_to_weather_event(live_forecast) if live_forecast else None
-event = live_event or offline_event
+event = live_event if weather_mode == "Canlı Open-Meteo" and live_event else offline_event
 model = ProxyHydraulicModel(assets, event)
 baseline = model.run()
 local_timezone = ZoneInfo("Europe/Istanbul")
 current_time = datetime.now(local_timezone)
 rain_start = event.starts_at.astimezone(local_timezone)
-remaining_minutes = max(0, int((rain_start - current_time).total_seconds() // 60))
-planning_deadline = min(event.horizon_minutes, remaining_minutes) if remaining_minutes else 1
+
+# Planlama süresi hesabı:
+# Çevrimdışı senaryoda sabit horizon_minutes (120 dk senaryo hazırlığı) kullanılır.
+# Canlı Open-Meteo'da yaklaşan yağış saatine kalan dakika veya operasyon penceresi (min 60, maks 180 dk) esas alınır.
+if weather_mode == "Canlı Open-Meteo":
+    remaining_minutes = int((rain_start - current_time).total_seconds() // 60)
+    planning_deadline = max(30, min(180, remaining_minutes)) if remaining_minutes > 0 else 60
+else:
+    planning_deadline = event.horizon_minutes
+
 plan = optimize_plan(model, actions, teams, deadline_minutes=planning_deadline)
 asset_map = {asset.id: asset for asset in assets}
 action_map = {action.id: action for action in actions}
@@ -1360,21 +1368,27 @@ with tabs[3]:
         )
 
 with tabs[4]:
-    st.html('<h2 class="status-heading">Yağış öncesi ekip görev planı</h2>')
+    st.html('<h2 class="status-heading">Yağış Öncesi Ekip ve Kaynak Operasyon Planı</h2>')
     st.caption(
-        f"Ekiplerin yağış başlangıcına kadar kullanabileceği **{planning_deadline} dakika** bulunuyor. "
-        "Aşağıdaki görevler ekip yetkinliği, gerekli araç ve ulaşım süresi birlikte değerlendirilerek seçildi."
+        f"Seçili meteoroloji modu: **{weather_mode}** · Yağış başlangıcına kadar müdahale için kalan süre: **{planning_deadline} dakika**. "
+        "Algoritma; ekiplerin araç kapasitesi, personel yetkinliği, yol süresi ve ağ hidrolik risk puanını birleştirerek en yüksek taşkın önleme faydasını optimize eder."
     )
+
+    total_personnel = sum(team.personnel_count for team in teams)
+    total_vehicles = len(teams)
 
     render_status_cards(
         [
-            ("Kullanılabilir süre", f"{planning_deadline} dk"),
-            ("Aktif ekip", str(len(teams))),
-            ("Planlanan görev", str(len(plan.assignments))),
-            ("Beklenen ağ faydası", f"{plan.simulated_benefit:.1f} puan"),
+            ("Kullanılabilir Süre", f"{planning_deadline} dk"),
+            ("Aktif Ekip Sayısı", f"{len(teams)} Ekip"),
+            ("Müdahale Edecek Personel", f"{total_personnel} Kişi"),
+            ("Müdahale Aracı", f"{total_vehicles} Özel Araç"),
+            ("Planlanan Öncelikli Görev", f"{len(plan.assignments)} Nokta"),
+            ("Ağ Taşkın Risk Azalımı", f"{plan.simulated_benefit:.1f} Puan"),
         ]
     )
 
+    st.markdown("### 🚒 Saha Ekipleri, Araç Filosu ve Müdahale Güzergahları")
     team_columns = st.columns(len(teams))
     for team_column, team in zip(team_columns, teams):
         team_assignments = sorted(
@@ -1383,10 +1397,20 @@ with tabs[4]:
         )
         with team_column:
             with st.container(border=True):
-                st.markdown(f"#### {team.name}")
-                st.caption(f"Başlangıç noktası: {asset_map[team.start_asset_id].name}")
+                st.markdown(f"#### 👷 {team.name}")
+                st.markdown(
+                    f"""
+                    - **Görevli Personel:** {team.personnel_count} Kişi
+                    - **Tahsis Edilen Araç:** {team.vehicle}
+                    - **Mevcut Ekipman:** {', '.join(team.equipment).replace('_', ' ').capitalize()}
+                    - **Uzmanlık:** {', '.join(team.skills).replace('_', ' ').capitalize()}
+                    - **Çıkış / Konuşlanma:** {asset_map[team.start_asset_id].name}
+                    """
+                )
+                st.divider()
+                st.markdown("##### 📍 Müdahale Sırası ve Zaman Çizelgesi")
                 if not team_assignments:
-                    st.info("Bu süre içinde ekibe uygun görev bulunamadı.")
+                    st.info("Bu kısıtlı sürede ekibin araç/yetkinliğine uygun yeni görev atanmadı.")
                 else:
                     team_rows = []
                     for task_number, assignment in enumerate(team_assignments, start=1):
@@ -1396,12 +1420,12 @@ with tabs[4]:
                         clock_end = current_time + timedelta(minutes=assignment.end_minute)
                         team_rows.append(
                             {
-                                "Sıra": task_number,
-                                "Görev": action.name,
-                                "Konum": asset.name,
-                                "Saat": f"{clock_start:%H:%M}–{clock_end:%H:%M}",
-                                "Ulaşım": f"{assignment.travel_minutes} dk",
-                                "Çalışma": f"{action.duration_minutes} dk",
+                                "Öncelik Sırası": f"#{task_number}",
+                                "Hedef Altyapı": asset.name,
+                                "Müdahale İşlemi": action.name,
+                                "Zaman Aralığı": f"{clock_start:%H:%M} – {clock_end:%H:%M}",
+                                "İntikal (Yol)": f"{assignment.travel_minutes} dk",
+                                "İşlem Süresi": f"{action.duration_minutes} dk",
                             }
                         )
                     st.dataframe(
@@ -1410,18 +1434,37 @@ with tabs[4]:
                         hide_index=True,
                     )
 
-    selected_action_names = [action_map[action_id].name for action_id in plan.selected_action_ids]
-    if selected_action_names:
-        st.success("Planlanan görevler yağış başlangıcından önce tamamlanabiliyor.")
+    st.markdown("### 🧭 Neden Bu Noktalara Öncelik Verildi?")
+    priority_explanation_rows = []
+    for assignment in plan.assignments:
+        action = action_map[assignment.action_id]
+        asset = asset_map[action.asset_id]
+        team = team_map[assignment.team_id]
+        priority_explanation_rows.append(
+            {
+                "Hedef Nokta": asset.name,
+                "Tür": ASSET_STYLES.get(asset.type.value, (asset.type.value,))[0],
+                "Atanan Ekip & Araç": f"{team.name} ({team.vehicle.split('(')[0].strip()})",
+                "Önceliklendirme Gerekçesi": priority_reason(asset),
+                "Beklenen Hidrolik Katkı": f"{action.capacity_factor_after*100:.0f}% Kapasiteye Çıkarılacak",
+            }
+        )
+    if priority_explanation_rows:
+        st.dataframe(
+            pd.DataFrame(priority_explanation_rows),
+            width="stretch",
+            hide_index=True,
+        )
 
-    with st.expander(f"Plan dışında kalan görevler ({len(plan.rejected)})"):
+    with st.expander(f"⏳ Zaman veya Kaynak Kısıtı Nedeniyle Sıraya Alınamayan Noktalar ({len(plan.rejected)})"):
+        st.caption("Bu noktalar yağış başlangıcına kadar intikal süresi yetmediği veya gerekli araç/ekip başka acil noktada olduğu için yedek plana bırakılmıştır.")
         st.dataframe(
             pd.DataFrame(
                 [
                     {
-                        "Görev": action_map[action_id].name,
-                        "Konum": asset_map[action_map[action_id].asset_id].name,
-                        "Neden seçilmedi?": reason,
+                        "Altyapı Noktası": asset_map[action_map[action_id].asset_id].name,
+                        "Ertelenen İşlem": action_map[action_id].name,
+                        "Gerekçe / Kısıt": reason,
                     }
                     for action_id, reason in plan.rejected.items()
                 ]

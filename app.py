@@ -590,7 +590,7 @@ st.html(
             font-size: 1.55rem;
             font-weight: 650;
             line-height: 1.2;
-            white-space: nowrap;
+            overflow-wrap: anywhere;
         }
 
         .observation-card {
@@ -1302,8 +1302,8 @@ with tabs[2]:
     )
 
 with tabs[3]:
-    st.subheader("Önce nerelere müdahale etmeliyiz?")
-    st.write(
+    st.html('<h2 class="status-heading">Önce nerelere müdahale etmeliyiz?</h2>')
+    st.caption(
         "Bu bölüm yalnız tıkanıklık oranına bakmaz. Bir noktaya müdahale edildiğinde "
         "drenaj ağının tamamında oluşan değişimi de dikkate alır."
     )
@@ -1312,10 +1312,16 @@ with tabs[3]:
 
     highest_risk_asset = max(assets, key=lambda asset: risks[asset.id])
     highest_benefit_action = max(actions, key=lambda action: benefits[action.id])
-    summary_a, summary_b, summary_c = st.columns(3)
-    summary_a.metric("En yüksek yerel risk", highest_risk_asset.name)
-    summary_b.metric("En etkili tek müdahale", asset_map[highest_benefit_action.asset_id].name)
-    summary_c.metric("Müdahalesiz ağ etkisi", f"{baseline.total_impact_index:.2f}")
+    render_status_cards(
+        [
+            ("En yüksek yerel risk", highest_risk_asset.name),
+            (
+                "En etkili tek müdahale",
+                asset_map[highest_benefit_action.asset_id].name,
+            ),
+            ("Başlangıçtaki ağ baskısı", f"{baseline.total_impact_index:.1f} puan"),
+        ]
+    )
 
     ordered_actions = sorted(actions, key=lambda action: benefits[action.id], reverse=True)
     priority_rows = []
@@ -1328,16 +1334,24 @@ with tabs[3]:
                 "Mevcut durum": condition_text(asset),
                 "Önerilen işlem": action.name,
                 "Neden önemli?": priority_reason(asset),
-                "Ağ geneli fayda": round(benefits[action.id], 2),
+                "Beklenen ağ faydası": round(benefits[action.id], 1),
             }
         )
 
-    st.markdown("**Müdahale öncelikleri**")
-    st.dataframe(
-        pd.DataFrame(priority_rows),
-        width="stretch",
-        hide_index=True,
-    )
+    with st.container(border=True):
+        st.markdown("#### Müdahale öncelik tablosu")
+        st.caption("En üstteki görev, ağ genelinde en fazla beklenen faydayı sağlar.")
+        st.dataframe(
+            pd.DataFrame(priority_rows),
+            width="stretch",
+            hide_index=True,
+            column_config={
+                "Öncelik": st.column_config.NumberColumn("Öncelik", format="%d"),
+                "Beklenen ağ faydası": st.column_config.NumberColumn(
+                    "Beklenen ağ faydası", format="%.1f puan"
+                ),
+            },
+        )
 
     action_a, action_b = action_map["A1"], action_map["A3"]
     delta = synergy_delta(model, action_a, action_b)
@@ -1349,17 +1363,20 @@ with tabs[3]:
         )
 
 with tabs[4]:
-    st.subheader("Yağış öncesi ekip görev planı")
-    st.write(
+    st.html('<h2 class="status-heading">Yağış öncesi ekip görev planı</h2>')
+    st.caption(
         f"Ekiplerin yağış başlangıcına kadar kullanabileceği **{planning_deadline} dakika** bulunuyor. "
         "Aşağıdaki görevler ekip yetkinliği, gerekli araç ve ulaşım süresi birlikte değerlendirilerek seçildi."
     )
 
-    p1, p2, p3, p4 = st.columns(4)
-    p1.metric("Kullanılabilir süre", f"{planning_deadline} dk")
-    p2.metric("Aktif ekip", len(teams))
-    p3.metric("Planlanan görev", len(plan.assignments))
-    p4.metric("Beklenen etki azalımı", f"{plan.simulated_benefit:.2f}")
+    render_status_cards(
+        [
+            ("Kullanılabilir süre", f"{planning_deadline} dk"),
+            ("Aktif ekip", str(len(teams))),
+            ("Planlanan görev", str(len(plan.assignments))),
+            ("Beklenen ağ faydası", f"{plan.simulated_benefit:.1f} puan"),
+        ]
+    )
 
     team_columns = st.columns(len(teams))
     for team_column, team in zip(team_columns, teams):
@@ -1369,26 +1386,38 @@ with tabs[4]:
         )
         with team_column:
             with st.container(border=True):
-                st.markdown(f"### {team.name}")
+                st.markdown(f"#### {team.name}")
                 st.caption(f"Başlangıç noktası: {asset_map[team.start_asset_id].name}")
                 if not team_assignments:
-                    st.write("Bu süre içinde ekibe uygun görev bulunamadı.")
-                for task_number, assignment in enumerate(team_assignments, start=1):
-                    action = action_map[assignment.action_id]
-                    asset = asset_map[action.asset_id]
-                    clock_start = current_time + timedelta(minutes=assignment.start_minute)
-                    clock_end = current_time + timedelta(minutes=assignment.end_minute)
-                    st.markdown(
-                        f"**{task_number}. {action.name}**  \n"
-                        f"{asset.name} · {clock_start:%H:%M}–{clock_end:%H:%M}  \n"
-                        f"Ulaşım: {assignment.travel_minutes} dk · Çalışma: {action.duration_minutes} dk"
+                    st.info("Bu süre içinde ekibe uygun görev bulunamadı.")
+                else:
+                    team_rows = []
+                    for task_number, assignment in enumerate(team_assignments, start=1):
+                        action = action_map[assignment.action_id]
+                        asset = asset_map[action.asset_id]
+                        clock_start = current_time + timedelta(minutes=assignment.start_minute)
+                        clock_end = current_time + timedelta(minutes=assignment.end_minute)
+                        team_rows.append(
+                            {
+                                "Sıra": task_number,
+                                "Görev": action.name,
+                                "Konum": asset.name,
+                                "Saat": f"{clock_start:%H:%M}–{clock_end:%H:%M}",
+                                "Ulaşım": f"{assignment.travel_minutes} dk",
+                                "Çalışma": f"{action.duration_minutes} dk",
+                            }
+                        )
+                    st.dataframe(
+                        pd.DataFrame(team_rows),
+                        width="stretch",
+                        hide_index=True,
                     )
 
     selected_action_names = [action_map[action_id].name for action_id in plan.selected_action_ids]
     if selected_action_names:
         st.success("Planlanan görevler yağış başlangıcından önce tamamlanabiliyor.")
 
-    with st.expander(f"Bu plana alınamayan görevler ({len(plan.rejected)})"):
+    with st.expander(f"Plan dışında kalan görevler ({len(plan.rejected)})"):
         st.dataframe(
             pd.DataFrame(
                 [
@@ -1405,7 +1434,10 @@ with tabs[4]:
         )
 
 with tabs[5]:
-    st.subheader("Sahadaki görevleri adım adım takip edin")
+    st.html('<h2 class="status-heading">Sahadaki görevleri adım adım takip edin</h2>')
+    st.caption(
+        "Planlanan iş emirlerinin ekibini, konumunu ve son durumunu tek ekrandan izleyin."
+    )
     step_a, step_b, step_c = st.columns(3)
     step_a.info("**1. Görevi seçin**\n\nTakip etmek istediğiniz iş emrini açın.")
     step_b.info("**2. Tamamlanmayı bildirin**\n\nEkip çalışmayı bitirdiğinde saha bildirimini girin.")
@@ -1417,11 +1449,34 @@ with tabs[5]:
     if not order_ids:
         st.info("Yağış başlangıcına kadar tamamlanabilecek bir iş emri bulunmuyor.")
     else:
+        order_rows = []
+        for listed_order in st.session_state.orders:
+            listed_action = action_map[listed_order.action_id]
+            order_rows.append(
+                {
+                    "İş emri": listed_order.id,
+                    "Görev": listed_action.name,
+                    "Konum": asset_map[listed_action.asset_id].name,
+                    "Ekip": team_map[listed_order.team_id].name,
+                    "Durum": STATUS_LABELS.get(
+                        listed_order.status.value, listed_order.status.value
+                    ),
+                }
+            )
+        with st.container(border=True):
+            st.markdown("#### İş emirlerinin güncel durumu")
+            st.dataframe(
+                pd.DataFrame(order_rows),
+                width="stretch",
+                hide_index=True,
+            )
+
         selected_order_id = st.selectbox(
             "Takip edilecek iş emri",
             order_ids,
             format_func=lambda order_id: (
-                f"{order_id} · {action_map[order_id.removeprefix('WO-')].name}"
+                f"{order_id} · {action_map[order_id.removeprefix('WO-')].name} · "
+                f"{STATUS_LABELS.get(st.session_state.orders[order_ids.index(order_id)].status.value, st.session_state.orders[order_ids.index(order_id)].status.value)}"
             ),
         )
         index = order_ids.index(selected_order_id)
@@ -1430,11 +1485,15 @@ with tabs[5]:
         asset = asset_map[action.asset_id]
 
         with st.container(border=True):
-            detail_a, detail_b, detail_c = st.columns(3)
-            detail_a.metric("Görev", action.name)
-            detail_b.metric("Konum", asset.name)
-            detail_c.metric("Durum", STATUS_LABELS.get(order.status.value, order.status.value))
-            st.write(f"**Sorumlu ekip:** {team_map[order.team_id].name}")
+            st.markdown("#### Seçilen iş emri")
+            render_status_cards(
+                [
+                    ("Görev", action.name),
+                    ("Konum", asset.name),
+                    ("Sorumlu ekip", team_map[order.team_id].name),
+                    ("Durum", STATUS_LABELS.get(order.status.value, order.status.value)),
+                ]
+            )
 
             button_a, button_b = st.columns(2)
             if button_a.button(
@@ -1471,7 +1530,11 @@ with tabs[5]:
             event_log_df["Durum"] = event_log_df["Durum"].map(
                 lambda value: STATUS_LABELS.get(value, value)
             )
-            st.dataframe(event_log_df[["Zaman", "Durum", "Açıklama"]], width="stretch", hide_index=True)
+            st.dataframe(
+                event_log_df[["Zaman", "Durum", "Açıklama"]],
+                width="stretch",
+                hide_index=True,
+            )
 
         if "replanned" in st.session_state:
             new_plan = st.session_state.replanned
@@ -1480,7 +1543,11 @@ with tabs[5]:
             st.write("**Sıradaki görevler:**", ", ".join(remaining_names) if remaining_names else "Görev kalmadı")
 
 with tabs[6]:
-    st.subheader("Bu plan bize ne kazandırıyor?")
+    st.html('<h2 class="status-heading">Bu plan bize ne kazandırıyor?</h2>')
+    st.caption(
+        "Aynı süre ve ekip koşullarında planın sağladığı beklenen faydayı ve "
+        "geleneksel seçim yöntemleriyle farkını görün."
+    )
     comparison = compare_policies(
         assets,
         actions,
@@ -1512,13 +1579,18 @@ with tabs[6]:
         for asset in selected_assets
     )
 
-    result_a, result_b, result_c, result_d = st.columns(4)
-    result_a.metric("Tamamlanacak görev", len(plan.assignments))
-    result_b.metric("Görev alacak ekip", used_team_count)
-    result_c.metric("Öncelik verilen kritik nokta", critical_location_count)
-    result_d.metric(
-        "Son görevin bitişi",
-        latest_finish_clock.strftime("%H:%M") if plan.assignments else "Görev yok",
+    render_status_cards(
+        [
+            ("Tamamlanacak görev", str(len(plan.assignments))),
+            ("Görev alacak ekip", str(used_team_count)),
+            ("Öncelik verilen kritik nokta", str(critical_location_count)),
+            (
+                "Son görevin bitişi",
+                latest_finish_clock.strftime("%H:%M")
+                if plan.assignments
+                else "Görev yok",
+            ),
+        ]
     )
 
     st.success(
@@ -1530,26 +1602,42 @@ with tabs[6]:
         text=f"Planla azaltılan ağ baskısı: %{improvement_percent:.1f}",
     )
 
-    benefit_left, benefit_right = st.columns(2)
-    with benefit_left:
-        st.markdown("**Planın doğrudan faydaları**")
-        st.markdown(
-            f"""
-            - {addressed_blockage_count} belirgin tıkanıklık noktasına müdahale ediliyor.
-            - {critical_location_count} kritik ulaşım veya altyapı bağlantısına öncelik veriliyor.
-            - {used_team_count} ekip aynı zaman aralığında paralel çalışıyor.
-            - Görevler yağıştan önce en geç {latest_finish_clock:%H:%M} saatinde tamamlanıyor.
-            """
-        )
-    with benefit_right:
-        st.markdown("**Plan sonrasında beklenen durum**")
-        st.markdown(
-            f"""
-            - Başlangıçtaki ağ baskısının yaklaşık **%{remaining_pressure:.1f}** kadarı kalıyor.
-            - Ekip veya araç yetkinliği dışında görev ataması yapılmıyor.
-            - Aynı görev iki farklı ekibe verilmiyor.
-            - Süre sınırını aşan işler plana alınmıyor.
-            """
+    with st.container(border=True):
+        st.markdown("#### Planın somut faydaları")
+        benefit_rows = [
+            {
+                "Başlık": "Belirgin tıkanıklıklar",
+                "Sonuç": f"{addressed_blockage_count} noktaya müdahale ediliyor",
+            },
+            {
+                "Başlık": "Kritik noktalar",
+                "Sonuç": f"{critical_location_count} kritik bağlantıya öncelik veriliyor",
+            },
+            {
+                "Başlık": "Paralel çalışma",
+                "Sonuç": f"{used_team_count} ekip aynı zaman aralığında çalışıyor",
+            },
+            {
+                "Başlık": "Plan sonu",
+                "Sonuç": (
+                    f"Son görev {latest_finish_clock:%H:%M} saatinde bitiyor"
+                    if plan.assignments
+                    else "Planlanmış görev bulunmuyor"
+                ),
+            },
+            {
+                "Başlık": "Kalan ağ baskısı",
+                "Sonuç": f"Başlangıç seviyesinin %{remaining_pressure:.1f} kadarı",
+            },
+            {
+                "Başlık": "Plan kısıtları",
+                "Sonuç": "Ekip, araç ve süre sınırları korunuyor",
+            },
+        ]
+        st.dataframe(
+            pd.DataFrame(benefit_rows),
+            width="stretch",
+            hide_index=True,
         )
 
     friendly_policy_names = {
@@ -1593,25 +1681,19 @@ with tabs[6]:
                 "Aynı yağış altında küçük fiziksel drenaj modelinde hesaplanan "
                 "yüzey taşma hacimleri:"
             )
-            swmm_a, swmm_b, swmm_c = st.columns(3)
-            swmm_a.metric("Müdahale yok", f"{swmm_baseline:.2f} m³")
-            swmm_b.metric(
-                "Menfez kapasitesi geri kazanılırsa",
-                f"{swmm_culvert:.2f} m³",
-                delta=f"-{100 * (swmm_baseline - swmm_culvert) / swmm_baseline:.1f}%",
-                delta_color="normal",
-            )
-            swmm_c.metric(
-                "Üç üst-hat múhalesi",
-                f"{swmm_portfolio:.2f} m³",
-                delta=f"-{100 * (swmm_baseline - swmm_portfolio) / swmm_baseline:.1f}%",
-                delta_color="normal",
+            render_status_cards(
+                [
+                    ("Müdahale yok", f"{swmm_baseline:.2f} m³"),
+                    ("Menfez kapasitesi geri kazanılırsa", f"{swmm_culvert:.2f} m³"),
+                    ("Üç üst-hat müdahalesi", f"{swmm_portfolio:.2f} m³"),
+                ]
             )
             st.caption(
                 "EPA SWMM 5.2.4 · Sentetik geometri ve yağış · Saha kalibrasyonu yapılmadı"
             )
 
-    with st.expander("Yöntemlerin görev karşılaştırmasını göster"):
+    with st.container(border=True):
+        st.markdown("#### Yöntemlerin görev karşılaştırması")
         result_rows = []
         for _, row in comparison_df.iterrows():
             selected_names = [action_map[action_id].name for action_id in row["action_ids"]]

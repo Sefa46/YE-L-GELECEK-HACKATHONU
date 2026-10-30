@@ -207,7 +207,7 @@ st.html(
         }
 
         .stTabs [data-baseweb="tab-list"] {
-            gap: 0.35rem;
+            gap: 0.9rem;
         }
 
         .stTabs [data-baseweb="tab"] {

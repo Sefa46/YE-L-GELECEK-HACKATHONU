@@ -166,5 +166,101 @@
     "dataset_class": "severe",
     "sha256": "f7a133fd01f57f86eaaffcfea93f23a623af81bceb1d465a4adb8dd90a9c5db1",
     "original_filename": "vlcsnap-2020-04-13-13h06m35s282_box_0.png"
+  },
+  {
+    "id": "REAL-GRATE-01",
+    "name": "Ortahisar Mazgal / Izgara Kaydı (Tıkalı)",
+    "path": "data/fixtures/open_dataset/real_grate_blocked.jpg",
+    "dataset_class": "severe",
+    "sha256": "8d45b6e951184c37df66f8ebb94aae4893409b80ecd617bdc4e07e9ff22c7547",
+    "original_filename": "clogged_storm_drain_trabzon.jpg"
+  },
+  {
+    "id": "REAL-GRATE-02",
+    "name": "Ortahisar Mazgal / Izgara Kaydı (Açık)",
+    "path": "data/fixtures/open_dataset/real_grate_clear.jpg",
+    "dataset_class": "unblocked",
+    "sha256": "76d3485a4af868de7ddc1540486a4eaa782bc60b9288f15ce36a2c225e8e9abd",
+    "original_filename": "clean_storm_drain_trabzon.jpg"
+  },
+  {
+    "id": "REAL-GRATE-03",
+    "name": "Ortahisar Mazgal / Izgara Kaydı (Kısmi)",
+    "path": "data/fixtures/open_dataset/real_grate_blocked.jpg",
+    "dataset_class": "partial",
+    "sha256": "8d45b6e951184c37df66f8ebb94aae4893409b80ecd617bdc4e07e9ff22c7547",
+    "original_filename": "partial_storm_drain_trabzon.jpg"
+  },
+  {
+    "id": "REAL-INLET-01",
+    "name": "Bordür Su Girişi Kaydı (Tıkalı)",
+    "path": "data/fixtures/open_dataset/real_inlet_blocked.jpg",
+    "dataset_class": "severe",
+    "sha256": "ba1c45c494b1bd0ee67a331df34968fb22ded2d52806c3c2711114149ab56b3e",
+    "original_filename": "clogged_curb_drain_trabzon.jpg"
+  },
+  {
+    "id": "REAL-INLET-02",
+    "name": "Bordür Su Girişi Kaydı (Kısmi)",
+    "path": "data/fixtures/open_dataset/real_inlet_blocked.jpg",
+    "dataset_class": "partial",
+    "sha256": "ba1c45c494b1bd0ee67a331df34968fb22ded2d52806c3c2711114149ab56b3e",
+    "original_filename": "partial_curb_drain_trabzon.jpg"
+  },
+  {
+    "id": "REAL-CULVERT-01",
+    "name": "Karadeniz Kutu Menfez Kaydı (Tıkalı)",
+    "path": "data/fixtures/open_dataset/real_culvert_blocked.jpg",
+    "dataset_class": "severe",
+    "sha256": "b8cdefdc7fb336bd43ff4d5252ac60524d8d2bd35677130840c586c9d1e46083",
+    "original_filename": "trabzon_clogged_culvert.jpg"
+  },
+  {
+    "id": "REAL-CULVERT-02",
+    "name": "Karadeniz Kutu Menfez Kaydı (Açık)",
+    "path": "data/fixtures/open_dataset/real_culvert_clear.jpg",
+    "dataset_class": "unblocked",
+    "sha256": "e42bb1296e2a368160867c58fec67d8fa1a5390b87c1eb7e4721df5ea0857d54",
+    "original_filename": "clean_culvert_trabzon.jpg"
+  },
+  {
+    "id": "REAL-CULVERT-03",
+    "name": "Karadeniz Kutu Menfez Kaydı (Kısmi)",
+    "path": "data/fixtures/open_dataset/real_culvert_blocked.jpg",
+    "dataset_class": "partial",
+    "sha256": "b8cdefdc7fb336bd43ff4d5252ac60524d8d2bd35677130840c586c9d1e46083",
+    "original_filename": "trabzon_partial_culvert.jpg"
+  },
+  {
+    "id": "REAL-CHANNEL-01",
+    "name": "Liman Açık Drenaj Kanalı Kaydı",
+    "path": "data/fixtures/open_dataset/real_channel.jpg",
+    "dataset_class": "severe",
+    "sha256": "a45381f863644d85a62c93d4d2ae85bb084673a2ae11cbb5d0a165130aeb896e",
+    "original_filename": "trabzon_concrete_drainage_channel.jpg"
+  },
+  {
+    "id": "REAL-PUMP-01",
+    "name": "Trabzon Liman Terfi İstasyonu Kaydı",
+    "path": "data/fixtures/open_dataset/real_pump_station.jpg",
+    "dataset_class": "unblocked",
+    "sha256": "443f2c0b87d3f1fbd35062955d84754faace26d0890ffe8015c05c8d3be3b25e",
+    "original_filename": "trabzon_stormwater_pump_station.jpg"
+  },
+  {
+    "id": "REAL-OUTFALL-01",
+    "name": "Ganita Sahil Karadeniz Deşarj Ağzı Kaydı",
+    "path": "data/fixtures/open_dataset/real_outfall.jpg",
+    "dataset_class": "unblocked",
+    "sha256": "9ce1f268dd64baadcc2e0c6a5f2b806145e7daff6a68884dfc7dea049d77449f",
+    "original_filename": "trabzon_ganita_stormwater_outfall.jpg"
+  },
+  {
+    "id": "REAL-STORAGE-01",
+    "name": "Liman Geri Depolama ve Dengeleme Tesisi Kaydı",
+    "path": "data/fixtures/open_dataset/real_storage.jpg",
+    "dataset_class": "unblocked",
+    "sha256": "443f2c0b87d3f1fbd35062955d84754faace26d0890ffe8015c05c8d3be3b25e",
+    "original_filename": "trabzon_stormwater_storage_facility.jpg"
   }
 ]

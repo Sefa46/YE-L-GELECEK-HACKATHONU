@@ -811,11 +811,7 @@ with tabs[0]:
         if day_diff > 0
         else rain_start.strftime("%H:%M")
     )
-    local_time_text = (
-        f"{current_time.strftime('%H:%M')} (Bugün / Sabit 24s Öncesi)"
-        if weather_mode != "Canlı Open-Meteo"
-        else current_time.strftime("%H:%M")
-    )
+    local_time_text = current_time.strftime("%H:%M")
     render_status_cards(
         [
             ("Yerel saat", local_time_text),
@@ -873,10 +869,20 @@ with tabs[0]:
             ]
         )
 
+    from plotly.subplots import make_subplots
+
     weather_rows = []
+    cumulative_mm = 0.0
+    intensity_color_map = {
+        "Çok kuvvetli": "#dc2626",
+        "Kuvvetli": "#ea580c",
+        "Orta": "#0284c7",
+        "Hafif": "#38bdf8",
+    }
     for hour_index, rain_mm in enumerate(event.hourly_rain_mm):
         hour_start = rain_start + timedelta(hours=hour_index)
         hour_end = hour_start + timedelta(hours=1)
+        cumulative_mm += rain_mm
         if rain_mm >= 30:
             intensity = "Çok kuvvetli"
         elif rain_mm >= 20:
@@ -890,33 +896,71 @@ with tabs[0]:
                 "Saat aralığı": f"{hour_start:%H:%M}–{hour_end:%H:%M}",
                 "Başlangıç": hour_start,
                 "Yağış (mm)": rain_mm,
+                "Kümülatif (mm)": round(cumulative_mm, 1),
                 "Şiddet": intensity,
+                "Renk": intensity_color_map[intensity],
             }
         )
     weather_df = pd.DataFrame(weather_rows)
 
-    weather_figure = go.Figure(
+    weather_figure = make_subplots(specs=[[{"secondary_y": True}]])
+    weather_figure.add_trace(
         go.Bar(
+            name="Saatlik Yağış (mm)",
             x=weather_df["Saat aralığı"],
             y=weather_df["Yağış (mm)"],
-            marker_color=["#4f9bd8", "#2f6fa5", "#76add3"],
+            marker_color=weather_df["Renk"],
             text=[f"{value:.0f} mm" for value in weather_df["Yağış (mm)"]],
             textposition="outside",
-            hovertemplate="%{x}<br>Yağış: %{y:.1f} mm<extra></extra>",
-        )
+            hovertemplate="%{x}<br>Saatlik Yağış: %{y:.1f} mm<br>Şiddet Seviyesi: "
+            + weather_df["Şiddet"]
+            + "<extra></extra>",
+        ),
+        secondary_y=False,
+    )
+    weather_figure.add_trace(
+        go.Scatter(
+            name="Kümülatif Toplam (mm)",
+            x=weather_df["Saat aralığı"],
+            y=weather_df["Kümülatif (mm)"],
+            mode="lines+markers+text",
+            line=dict(color="#f59e0b", width=3, dash="dash"),
+            marker=dict(size=8, color="#d97706"),
+            text=[f"{value:.0f} mm" for value in weather_df["Kümülatif (mm)"]],
+            textposition="top left",
+            hovertemplate="%{x}<br>Kümülatif Yağış: %{y:.1f} mm<extra></extra>",
+        ),
+        secondary_y=True,
+    )
+    chart_heading = (
+        f"🌧️ Ertesi Gün ({rain_start:%d.%m.%Y}) Saatlik Yağış ve Kümülatif Su Yükü (Zirve: 10:00–11:00 / 48 mm)"
+        if weather_mode != "Canlı Open-Meteo"
+        else "🌧️ Saatlik Yağış ve Kümülatif Su Dağılımı"
     )
     weather_figure.update_layout(
-        title="Saatlik yağış beklentisi",
-        xaxis_title="Saat",
-        yaxis_title="Yağış (mm)",
-        height=380,
+        title=chart_heading,
+        height=390,
         margin={"l": 20, "r": 20, "t": 60, "b": 20},
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
+    weather_figure.update_yaxes(title_text="Saatlik Yağış (mm)", secondary_y=False)
+    weather_figure.update_yaxes(
+        title_text="Kümülatif Toplam (mm)", secondary_y=True, showgrid=False
+    )
+
     st.plotly_chart(weather_figure, width="stretch", config={"displayModeBar": False})
     st.dataframe(
-        weather_df[["Saat aralığı", "Yağış (mm)", "Şiddet"]],
+        weather_df[["Saat aralığı", "Yağış (mm)", "Kümülatif (mm)", "Şiddet"]],
         width="stretch",
         hide_index=True,
+        column_config={
+            "Kümülatif (mm)": st.column_config.ProgressColumn(
+                "Kümülatif (mm)",
+                min_value=0,
+                max_value=float(sum(event.hourly_rain_mm)),
+                format="%.1f mm",
+            ),
+        },
     )
 
     if live_forecast:

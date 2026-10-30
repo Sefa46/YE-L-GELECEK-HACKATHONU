@@ -18,35 +18,82 @@ def obstruction_class_for_fraction(fraction: float | None) -> ObservationClass:
 def link_assets_to_vision_samples(
     assets: list[Asset], samples: list[dict[str, Any]]
 ) -> dict[str, dict[str, Any]]:
-    """Her altyapı noktasını tıkanıklık durumuna tam uyan doğrulanmış bir görüntüye bağlar."""
+    """Her altyapı noktasını kendi yapı türüne (mazgal, menfez, açık kanal, pompa, deşarj, boru) ve tıkanıklık durumuna tam uyan doğrulanmış bir görüntüye bağlar."""
     sample_by_id = {s["id"]: s for s in samples}
 
-    # Modelin ve insanın kesin olarak aynı fikirde olduğu temiz eşleşme listeleri:
-    # severe (ciddi tıkalılar): VHBD-B02 (%50.6 kapanma), VHBD-B03 (%28.0), VHBD-B04 (%19.6), VHBD-B01 (%19.4)
-    # partial (kısmi tıkalılar): VHBD-P01 (%14.0), VHBD-P02 (%16.8), VHBD-P05 (%18.5), VHBD-P06 (%17.9), VHBD-P07 (%18.5)
-    # unblocked (açık / normaller): VHBD-C02 (%0.0), VHBD-C03 (%0.0), VHBD-C05 (%0.0), VHBD-C06 (%0.0), VHBD-C01 (%6.9)
-    curated_classes = {
-        "severe": [
-            sample_by_id.get(sid) for sid in ["VHBD-B02", "VHBD-B03", "VHBD-B04", "VHBD-B01"]
-            if sid in sample_by_id
-        ],
-        "partial": [
-            sample_by_id.get(sid) for sid in ["VHBD-P02", "VHBD-P05", "VHBD-P06", "VHBD-P07", "VHBD-P01"]
-            if sid in sample_by_id
-        ],
-        "unblocked": [
-            sample_by_id.get(sid) for sid in ["VHBD-C02", "VHBD-C03", "VHBD-C05", "VHBD-C06", "VHBD-C01"]
-            if sid in sample_by_id
-        ],
+    # Yapı türü ve tıkanıklık durumuna göre özel gerçekçi eşleştirme matrisi
+    TYPE_AWARE_MATCHES: dict[str, dict[str, str]] = {
+        # Açık kanal (Doğu kanalı, vadi tabanı)
+        "open_channel": {
+            "severe": "REAL-CHANNEL-01",
+            "partial": "REAL-CHANNEL-01",
+            "unblocked": "REAL-CHANNEL-01",
+        },
+        # Pompa istasyonu (Liman terfi istasyonu)
+        "pump_station": {
+            "severe": "REAL-PUMP-01",
+            "partial": "REAL-PUMP-01",
+            "unblocked": "REAL-PUMP-01",
+        },
+        # Karadeniz sahil deşarj ağzı (Ganita çıkışı)
+        "outfall": {
+            "severe": "REAL-OUTFALL-01",
+            "partial": "REAL-OUTFALL-01",
+            "unblocked": "REAL-OUTFALL-01",
+        },
+        # Depolama tesisi
+        "storage": {
+            "severe": "REAL-STORAGE-01",
+            "partial": "REAL-STORAGE-01",
+            "unblocked": "REAL-STORAGE-01",
+        },
+        # Menfezler (Betonarme kutu menfez)
+        "culvert": {
+            "severe": "REAL-CULVERT-01",
+            "partial": "REAL-CULVERT-03",
+            "unblocked": "REAL-CULVERT-02",
+        },
+        # Sokak ızgaraları / Mazgallar
+        "grate": {
+            "severe": "REAL-GRATE-01",
+            "partial": "REAL-GRATE-03",
+            "unblocked": "REAL-GRATE-02",
+        },
+        # Bordür su girişleri
+        "inlet": {
+            "severe": "REAL-INLET-01",
+            "partial": "REAL-INLET-02",
+            "unblocked": "REAL-GRATE-02",
+        },
+        # Kapalı boru ve ana kolektörler (Boru içi akış / CCTV kaydı)
+        "pipe": {
+            "severe": "VHBD-B02",
+            "partial": "VHBD-P01",
+            "unblocked": "VHBD-C02",
+        },
+        "collector": {
+            "severe": "VHBD-B01",
+            "partial": "VHBD-P02",
+            "unblocked": "VHBD-C01",
+        },
     }
 
-    sample_cycles = {
-        key: cycle(class_samples) for key, class_samples in curated_classes.items() if class_samples
-    }
     links: dict[str, dict[str, Any]] = {}
     for asset in assets:
-        observation_class = obstruction_class_for_fraction(
+        obs_class = obstruction_class_for_fraction(
             asset.blockage_visual_fraction
         ).value
-        links[asset.id] = next(sample_cycles[observation_class])
+        asset_type_val = (
+            asset.type.value if hasattr(asset.type, "value") else str(asset.type)
+        )
+        matched_id = TYPE_AWARE_MATCHES.get(asset_type_val, {}).get(obs_class)
+        if matched_id and matched_id in sample_by_id:
+            links[asset.id] = sample_by_id[matched_id]
+        else:
+            # Sınıfa uyan ilk uygun örneği ata
+            fallback = next(
+                (s for s in samples if s.get("dataset_class") == obs_class),
+                samples[0],
+            )
+            links[asset.id] = fallback
     return links

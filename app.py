@@ -80,10 +80,21 @@ elif st.session_state.tracked_weather_mode != weather_mode:
     st.session_state.pop("replanned", None)
     st.session_state.pop("asset_observations", None)
 
-base_assets = load_assets()
-actions = load_actions()
-teams = load_teams()
-vision_samples = load_vision_samples()
+
+@st.cache_data(show_spinner=False)
+def get_cached_fixtures():
+    return load_assets(), load_actions(), load_teams(), load_vision_samples()
+
+
+@st.cache_data(show_spinner=False)
+def cached_mark_obstruction_regions(cache_key: str, image_bytes: bytes | None = None):
+    """YOLO ve MobileCLIP derin öğrenme tespitini önbelleğe alarak anında (<1ms) yanıt üretir."""
+    if image_bytes is not None:
+        return mark_obstruction_regions(image_bytes)
+    return mark_obstruction_regions(cache_key)
+
+
+base_assets, actions, teams, vision_samples = get_cached_fixtures()
 asset_vision_links = link_assets_to_vision_samples(base_assets, vision_samples)
 if "asset_observations" not in st.session_state:
     st.session_state.asset_observations = {
@@ -1256,8 +1267,17 @@ with tabs[2]:
             f"{selected_sample['id']}"
         )
 
-    # AI Analizi çalıştır
-    detection = mark_obstruction_regions(image_source)
+    # AI Analizi çalıştır (Önbellekli yüksek hızlı çıkarım)
+    if uploaded_image is not None:
+        detection = cached_mark_obstruction_regions(
+            f"up_{uploaded_image.name}_{len(image_bytes)}", image_bytes
+        )
+    elif saved_image_bytes:
+        detection = cached_mark_obstruction_regions(
+            f"saved_{selected_asset_id}_{len(saved_image_bytes)}", saved_image_bytes
+        )
+    else:
+        detection = cached_mark_obstruction_regions(str(image_source), None)
     marked_percent = float(detection["marked_fraction"]) * 100
     
     # Modelin sınıf sonucunu belirleme (Görsel segmentasyon ve alan oranı öncelikli)
@@ -1714,12 +1734,31 @@ with tabs[4]:
         )
 
 with tabs[5]:
-    col_head, col_reset = st.columns([3, 1])
+    col_head, col_quick, col_reset = st.columns([2.2, 1.4, 1.2])
     with col_head:
         st.html('<h2 class="status-heading">Sahadaki Görevleri Ekip Bazında Takip Edin ve Onaylayın</h2>')
         st.caption(
             "Her ekibin üzerine atanan görevleri sırayla inceleyin; çalışma bittiğinde 'Tamamlandı' ve 'Doğrulandı' olarak işaretleyin."
         )
+    with col_quick:
+        if st.button("⚡ Tüm 12 Görevi Toplu Onayla", key="btn_quick_all", type="primary", help="Tüm ekiplerin görevlerini tek tıkla sahada tamamlandı ve doğrulandı yapar"):
+            for i, o in enumerate(st.session_state.orders):
+                if o.status != WorkOrderStatus.VERIFIED:
+                    if o.status == WorkOrderStatus.ASSIGNED:
+                        o = mark_completed(o)
+                    st.session_state.orders[i] = verify_order(
+                        o,
+                        {"class": "unblocked", "source": "operator_input", "note": "Toplu operatör saha onayı"}
+                    )
+            st.session_state.replanned = replan_after_verification(
+                assets,
+                event,
+                actions,
+                teams,
+                st.session_state.orders,
+                deadline_minutes=planning_deadline,
+            )
+            st.rerun()
     with col_reset:
         if st.button("🔄 Tüm Görevleri Baştan Başlat", key="btn_reset_orders_tab5", help="Tüm görev durumlarını sıfırlar"):
             st.session_state.pop("orders", None)
@@ -1768,6 +1807,30 @@ with tabs[5]:
                 st.info("Bu ekibe henüz görev atanmadı.")
                 continue
 
+            col_team_info, col_team_btn = st.columns([2.5, 1.5])
+            with col_team_info:
+                st.caption(f"**{team.name}** için toplam {len(team_orders)} kritik görev planlanmıştır.")
+            with col_team_btn:
+                if any(o.status != WorkOrderStatus.VERIFIED for o in team_orders):
+                    if st.button(f"⚡ {team.name} Görevlerini Toplu Onayla", key=f"btn_quick_team_{team.id}"):
+                        for i, o in enumerate(st.session_state.orders):
+                            if o.team_id == team.id and o.status != WorkOrderStatus.VERIFIED:
+                                if o.status == WorkOrderStatus.ASSIGNED:
+                                    o = mark_completed(o)
+                                st.session_state.orders[i] = verify_order(
+                                    o,
+                                    {"class": "unblocked", "source": "operator_input", "note": f"{team.name} saha incelemesi tamamlandı"}
+                                )
+                        st.session_state.replanned = replan_after_verification(
+                            assets,
+                            event,
+                            actions,
+                            teams,
+                            st.session_state.orders,
+                            deadline_minutes=planning_deadline,
+                        )
+                        st.rerun()
+
             for idx, order in enumerate(team_orders, start=1):
                 action = action_map[order.action_id]
                 asset = asset_map[action.asset_id]
@@ -1779,7 +1842,7 @@ with tabs[5]:
                 )
                 
                 with st.container(border=True):
-                    col_info, col_act = st.columns([2.5, 1.5])
+                    col_info, col_act = st.columns([2.2, 1.8])
                     with col_info:
                         st.markdown(f"##### {status_icon} #{idx}. {action.name}")
                         st.caption(f"**Konum:** {asset.name} ({ASSET_STYLES.get(asset.type.value, (asset.type.value,))[0]}) · **Öncelik Sebebi:** {priority_reason(asset)}")
@@ -1790,9 +1853,27 @@ with tabs[5]:
                         if all_indices:
                             real_idx = all_indices[0]
                             if order.status == WorkOrderStatus.ASSIGNED:
-                                if st.button("Sahada Tamamlandı Olarak İşaretle", key=f"btn_comp_{order.id}", width="stretch"):
-                                    st.session_state.orders[real_idx] = mark_completed(order)
-                                    st.rerun()
+                                c1, c2 = st.columns(2)
+                                with c1:
+                                    if st.button("Tamamlandı Bildir", key=f"btn_comp_{order.id}", width="stretch"):
+                                        st.session_state.orders[real_idx] = mark_completed(order)
+                                        st.rerun()
+                                with c2:
+                                    if st.button("⚡ Hızlı Doğrula", key=f"btn_fast_ver_{order.id}", type="primary", width="stretch"):
+                                        comp = mark_completed(order)
+                                        st.session_state.orders[real_idx] = verify_order(
+                                            comp,
+                                            {"class": "unblocked", "source": "operator_input", "note": "Saha ekiplerince temizlik doğrulandı"}
+                                        )
+                                        st.session_state.replanned = replan_after_verification(
+                                            assets,
+                                            event,
+                                            actions,
+                                            teams,
+                                            st.session_state.orders,
+                                            deadline_minutes=planning_deadline,
+                                        )
+                                        st.rerun()
                             elif order.status == WorkOrderStatus.COMPLETED_PENDING_VERIFICATION:
                                 if st.button("✅ Saha Gözlemiyle Doğrula & Onayla", key=f"btn_ver_{order.id}", type="primary", width="stretch"):
                                     st.session_state.orders[real_idx] = verify_order(

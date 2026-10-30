@@ -194,8 +194,8 @@ st.html(
 )
 with st.container(key="siper_header"):
     title_column, description_column = st.columns(
-        [1, 4],
-        gap="small",
+        [1, 5],
+        gap=None,
         vertical_alignment="bottom",
         wrap=False,
     )

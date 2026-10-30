@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from strenum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, model_validator

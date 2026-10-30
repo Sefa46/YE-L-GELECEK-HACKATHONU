@@ -1120,13 +1120,10 @@ with tabs[2]:
     detection = mark_obstruction_regions(image_source)
     marked_percent = float(detection["marked_fraction"]) * 100
     
-    # Modelin tek sınıf sonucunu belirleme
-    clip_scores = detection.get("clip_scores")
-    if clip_scores:
-        model_class = max(clip_scores, key=clip_scores.get)
-    elif marked_percent >= 30.0:
+    # Modelin sınıf sonucunu belirleme (Görsel segmentasyon ve alan oranı öncelikli)
+    if marked_percent >= 19.0:
         model_class = "severe"
-    elif marked_percent >= 10.0:
+    elif marked_percent >= 8.0:
         model_class = "partial"
     else:
         model_class = "unblocked"

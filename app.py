@@ -183,73 +183,8 @@ def priority_reason(asset) -> str:
     return "; ".join(reasons).capitalize() if reasons else "Ağ akışı üzerinde etkili bir bağlantı noktası."
 
 
-st.html(
-    """
-    <style>
-        [data-testid="stMainBlockContainer"] {
-            padding-top: 0.9rem;
-        }
-
-        .siper-hero {
-            min-height: 92px;
-            display: flex;
-            align-items: flex-start;
-            gap: 1.4rem;
-            margin: 0 0 0.35rem 0;
-        }
-
-        .siper-hero__title {
-            margin: 0;
-            color: inherit;
-            font-size: clamp(3.5rem, 5vw, 4.8rem);
-            font-weight: 850;
-            letter-spacing: -0.055em;
-            line-height: 0.98;
-            white-space: nowrap;
-        }
-
-        .siper-hero__tagline {
-            max-width: 690px;
-            margin-top: 1.15rem;
-            color: inherit;
-            opacity: 0.78;
-            font-size: clamp(1rem, 1.35vw, 1.2rem);
-            font-weight: 650;
-            line-height: 1.35;
-            transform: rotate(-2.4deg);
-            transform-origin: left center;
-        }
-
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 0.35rem;
-        }
-
-        .stTabs [data-baseweb="tab-list"] button p {
-            font-size: 1.08rem;
-            font-weight: 650;
-        }
-
-        @media (max-width: 900px) {
-            .siper-hero {
-                min-height: 118px;
-                flex-direction: column;
-                gap: 0.25rem;
-            }
-
-            .siper-hero__tagline {
-                margin-top: 0;
-                max-width: 95%;
-            }
-        }
-    </style>
-    <header class="siper-hero">
-        <h1 class="siper-hero__title">SİPER AI</h1>
-        <div class="siper-hero__tagline">
-            Yapay Zekâ Destekli, Öngörülü Kentsel Yağmur Suyu ve Taşkın Müdahale Yönetim Sistemi
-        </div>
-    </header>
-    """
-)
+st.title("SİPER AI")
+st.caption("Sel İçin Proaktif Erken Risk Yönetimi — Yağış öncesi drenaj risk ve operasyon planlama sistemi")
 
 tabs = st.tabs(
     [

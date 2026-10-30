@@ -233,99 +233,186 @@ def render_observation_status_cards(
 def render_pulsing_drainage_map(
     figure: go.Figure, base_sizes: list[int]
 ) -> None:
+    line_trace = figure.data[0]
     marker_trace = figure.data[1]
+    line_segments: list[list[list[float]]] = []
+    current_segment: list[list[float]] = []
+    for lon, lat in zip(line_trace.lon, line_trace.lat, strict=True):
+        if lon is None or lat is None:
+            if len(current_segment) > 1:
+                line_segments.append(current_segment)
+            current_segment = []
+            continue
+        current_segment.append([float(lat), float(lon)])
+    if len(current_segment) > 1:
+        line_segments.append(current_segment)
+
     pulse_markers = [
         {
             "lon": float(lon),
             "lat": float(lat),
             "color": str(color),
             "size": int(size),
+            "id": str(asset_id),
+            "details": str(details),
         }
-        for lon, lat, color, size in zip(
+        for lon, lat, color, size, asset_id, details in zip(
             marker_trace.lon,
             marker_trace.lat,
             marker_trace.marker.color,
             base_sizes,
+            marker_trace.text,
+            marker_trace.hovertext,
             strict=True,
         )
     ]
-    pulse_script = f"""
-    const graph = document.getElementById('{{plot_id}}');
-    const pulseMarkers = {json.dumps(pulse_markers)};
-
-    const installPulseOverlay = () => {{
-        const map = graph?._fullLayout?.map?._subplot?.map;
-        if (!map || !map.getContainer) {{
-            window.setTimeout(installPulseOverlay, 100);
-            return;
-        }}
-
-        const style = document.createElement('style');
-        style.textContent = `
-            .siper-pulse-layer {{
-                position: absolute;
-                inset: 0;
-                z-index: 4;
+    map_html = """
+    <!doctype html>
+    <html lang="tr">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <style>
+            html, body, #drainage-map {
+                width: 100%;
+                height: 100%;
+                margin: 0;
                 overflow: hidden;
-                pointer-events: none;
-            }}
-            .siper-pulse-marker {{
-                position: absolute;
-                transform: translate(-50%, -50%);
-                border: 2px solid rgba(255, 255, 255, 0.95);
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            }
+            .siper-marker-shell {
+                overflow: visible !important;
+                background: transparent;
+                border: 0;
+            }
+            .siper-marker {
+                position: relative;
+                width: var(--marker-size);
+                height: var(--marker-size);
+                border: 2px solid rgba(255, 255, 255, 0.98);
                 border-radius: 999px;
                 background: var(--marker-color);
-                box-shadow: 0 1px 5px rgba(15, 23, 42, 0.38);
-            }}
-            .siper-pulse-marker::after {{
+                box-shadow: 0 2px 7px rgba(15, 23, 42, 0.55);
+            }
+            .siper-marker::before {
                 position: absolute;
-                inset: -2px;
-                content: '';
+                inset: -3px;
+                content: "";
                 border: 3px solid var(--marker-color);
                 border-radius: inherit;
-                animation: siper-pulse 1.55s ease-out infinite;
-            }}
-            @keyframes siper-pulse {{
-                0% {{ transform: scale(0.8); opacity: 0.9; }}
-                72%, 100% {{ transform: scale(2.05); opacity: 0; }}
-            }}
-        `;
-        document.head.appendChild(style);
+                animation: siper-pulse 1.6s ease-out infinite;
+                animation-delay: var(--pulse-delay);
+            }
+            .siper-marker__id {
+                position: absolute;
+                left: 50%;
+                bottom: calc(100% + 5px);
+                transform: translateX(-50%);
+                padding: 1px 4px;
+                border-radius: 4px;
+                color: #172033;
+                background: rgba(255, 255, 255, 0.9);
+                font-size: 11px;
+                font-weight: 750;
+                line-height: 1.2;
+                white-space: nowrap;
+                box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+            }
+            .siper-legend {
+                padding: 9px 11px;
+                border-radius: 8px;
+                background: rgba(255, 255, 255, 0.94);
+                box-shadow: 0 1px 6px rgba(15, 23, 42, 0.28);
+                color: #172033;
+                font-size: 12px;
+                line-height: 1.65;
+            }
+            .siper-legend__dot {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                margin-right: 6px;
+                border-radius: 50%;
+            }
+            .leaflet-tooltip {
+                max-width: 310px;
+                white-space: normal;
+                line-height: 1.42;
+            }
+            @keyframes siper-pulse {
+                0% { transform: scale(0.72); opacity: 0.95; }
+                75%, 100% { transform: scale(2.1); opacity: 0; }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="drainage-map"></div>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            const lineSegments = __LINE_SEGMENTS__;
+            const markers = __PULSE_MARKERS__;
+            const map = L.map('drainage-map', {
+                center: [41.0040, 39.7420],
+                zoom: 13,
+                zoomControl: true,
+                preferCanvas: true
+            });
 
-        const layer = document.createElement('div');
-        layer.className = 'siper-pulse-layer';
-        map.getContainer().appendChild(layer);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap katkıda bulunanlar'
+            }).addTo(map);
 
-        const elements = pulseMarkers.map((marker) => {{
-            const element = document.createElement('div');
-            element.className = 'siper-pulse-marker';
-            element.style.setProperty('--marker-color', marker.color);
-            element.style.width = `${{marker.size}}px`;
-            element.style.height = `${{marker.size}}px`;
-            layer.appendChild(element);
-            return {{ marker, element }};
-        }});
+            lineSegments.forEach((segment) => {
+                L.polyline(segment, {
+                    color: '#334e68',
+                    weight: 4,
+                    opacity: 0.86
+                }).addTo(map);
+            });
 
-        const positionMarkers = () => {{
-            elements.forEach((item) => {{
-                const point = map.project([item.marker.lon, item.marker.lat]);
-                item.element.style.left = `${{point.x}}px`;
-                item.element.style.top = `${{point.y}}px`;
-            }});
-        }};
+            markers.forEach((marker, index) => {
+                const markerHtml = `
+                    <div class="siper-marker" style="--marker-color:${marker.color}; --marker-size:${marker.size}px; --pulse-delay:-${(index % 5) * 0.18}s">
+                        <span class="siper-marker__id">${marker.id}</span>
+                    </div>`;
+                const icon = L.divIcon({
+                    className: 'siper-marker-shell',
+                    html: markerHtml,
+                    iconSize: [marker.size, marker.size],
+                    iconAnchor: [marker.size / 2, marker.size / 2]
+                });
+                L.marker([marker.lat, marker.lon], { icon })
+                    .addTo(map)
+                    .bindTooltip(marker.details, { direction: 'top', sticky: true, opacity: 0.98 });
+            });
 
-        map.on('move', positionMarkers);
-        map.on('resize', positionMarkers);
-        positionMarkers();
-    }};
+            if (markers.length) {
+                const bounds = L.latLngBounds(markers.map((marker) => [marker.lat, marker.lon]));
+                map.fitBounds(bounds, { padding: [42, 42], maxZoom: 14 });
+            }
 
-    installPulseOverlay();
-    """
-    map_html = figure.to_html(
-        full_html=False,
-        include_plotlyjs=True,
-        config={"displayModeBar": True, "scrollZoom": True, "responsive": True},
-        post_script=pulse_script,
+            const legend = L.control({ position: 'topright' });
+            legend.onAdd = () => {
+                const box = L.DomUtil.create('div', 'siper-legend');
+                box.innerHTML = `
+                    <div><span class="siper-legend__dot" style="background:#dc2626"></span>Ciddi tıkalı</div>
+                    <div><span class="siper-legend__dot" style="background:#eab308"></span>Kısmi tıkalı</div>
+                    <div><span class="siper-legend__dot" style="background:#16a34a"></span>Açık / normal</div>`;
+                return box;
+            };
+            legend.addTo(map);
+
+            new ResizeObserver(() => map.invalidateSize(false)).observe(document.body);
+            window.setTimeout(() => map.invalidateSize(false), 200);
+        </script>
+    </body>
+    </html>
+    """.replace(
+        "__LINE_SEGMENTS__", json.dumps(line_segments, ensure_ascii=False)
+    ).replace(
+        "__PULSE_MARKERS__", json.dumps(pulse_markers, ensure_ascii=False)
     )
     st.iframe(
         map_html,

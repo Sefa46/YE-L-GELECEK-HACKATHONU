@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta
+from html import escape
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -183,6 +184,19 @@ def priority_reason(asset) -> str:
     return "; ".join(reasons).capitalize() if reasons else "Ağ akışı üzerinde etkili bir bağlantı noktası."
 
 
+def render_status_cards(items: list[tuple[str, str]]) -> None:
+    cards = "".join(
+        (
+            '<div class="status-card">'
+            f'<div class="status-card__label">{escape(label)}</div>'
+            f'<div class="status-card__value">{escape(value)}</div>'
+            "</div>"
+        )
+        for label, value in items
+    )
+    st.html(f'<div class="status-grid">{cards}</div>')
+
+
 st.html(
     """
     <style>
@@ -223,6 +237,49 @@ st.html(
             font-weight: 650;
             white-space: nowrap;
         }
+
+        .status-heading {
+            margin: 0.65rem 0 0.2rem 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.25;
+        }
+
+        .status-location {
+            margin-bottom: 0.8rem;
+            font-size: 1rem;
+            opacity: 0.78;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 0.75rem;
+            margin: 0.65rem 0 1rem 0;
+        }
+
+        .status-card {
+            min-height: 78px;
+            padding: 0.8rem 0.95rem;
+            border: 1px solid rgba(128, 128, 128, 0.24);
+            border-radius: 0.7rem;
+            background: rgba(128, 128, 128, 0.055);
+        }
+
+        .status-card__label {
+            margin-bottom: 0.32rem;
+            font-size: 1.05rem;
+            font-weight: 650;
+            line-height: 1.2;
+            opacity: 0.78;
+        }
+
+        .status-card__value {
+            font-size: 1.55rem;
+            font-weight: 650;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
     </style>
     <h1 class="siper-title-line">
         SİPER AI
@@ -246,15 +303,14 @@ tabs = st.tabs(
 with tabs[0]:
     rain_end = rain_start + timedelta(hours=len(event.hourly_rain_mm))
 
-    st.subheader("Trabzon yağış ve hazırlık durumu")
-    st.write("**Konum:** Trabzon · Ortahisar ve sahil drenaj hattı")
+    st.html(
+        """
+        <h2 class="status-heading">Trabzon yağış ve hazırlık durumu</h2>
+        <div class="status-location"><strong>Konum:</strong> Trabzon · Ortahisar ve sahil drenaj hattı</div>
+        """
+    )
 
-    if live_event:
-        st.caption(
-            f"Veri kaynağı: Open-Meteo saatlik tahmin · Son alım: "
-            f"{live_forecast.fetched_at:%d.%m.%Y %H:%M}"
-        )
-    elif live_forecast:
+    if live_forecast and not live_event:
         st.caption(
             "Canlı Open-Meteo tahmininde önümüzdeki 48 saat için yağış olayı "
             "oluşmadı; operasyon modeli çevrimdışı senaryoyu kullanıyor."
@@ -263,18 +319,23 @@ with tabs[0]:
         st.caption(
             "Open-Meteo'ya erişilemedi; operasyon modeli çevrimdışı senaryoyu kullanıyor."
         )
-    else:
-        st.caption("Veri kaynağı: Çevrimdışı planlama senaryosu")
+    render_status_cards(
+        [
+            ("Yerel saat", current_time.strftime("%H:%M")),
+            ("Yağış başlangıcı", rain_start.strftime("%H:%M")),
+            ("Kalan süre", remaining_time_text(rain_start, current_time)),
+            ("Yağışın bitişi", rain_end.strftime("%H:%M")),
+            ("Toplam yağış", f"{sum(event.hourly_rain_mm):.1f} mm"),
+        ]
+    )
 
-    cols = st.columns(5)
-    cols[0].metric("Yerel saat", current_time.strftime("%H:%M"))
-    cols[1].metric("Yağış başlangıcı", rain_start.strftime("%H:%M"))
-    cols[2].metric("Kalan süre", remaining_time_text(rain_start, current_time))
-    cols[3].metric("Yağışın bitişi", rain_end.strftime("%H:%M"))
-    cols[4].metric("Toplam yağış", f"{sum(event.hourly_rain_mm):.1f} mm")
-
+    rain_message = (
+        f"Yağış {rain_start.strftime('%H:%M')} itibarıyla başladı."
+        if current_time >= rain_start
+        else f"Yağışın {rain_start.strftime('%H:%M')} civarında başlaması bekleniyor."
+    )
     st.info(
-        f"Yağışın {rain_start.strftime('%H:%M')} civarında başlaması bekleniyor. "
+        f"{rain_message} "
         f"Hazırlanan planda {len(teams)} ekip için {len(plan.assignments)} görev bulunuyor; "
         f"ağda {len(assets)} altyapı noktası takip ediliyor."
     )
@@ -282,28 +343,33 @@ with tabs[0]:
     if live_forecast:
         current_forecast = live_forecast.hours[0]
         upcoming_rain = next_rain_hour(live_forecast)
-        live_cols = st.columns(4)
-        live_cols[0].metric(
-            "Sıcaklık",
-            f"{current_forecast.temperature_c:.1f} °C"
-            if current_forecast.temperature_c is not None
-            else "—",
-        )
-        live_cols[1].metric(
-            "Yağış olasılığı",
-            f"%{current_forecast.precipitation_probability_pct:.0f}"
-            if current_forecast.precipitation_probability_pct is not None
-            else "—",
-        )
-        live_cols[2].metric(
-            "Rüzgâr",
-            f"{current_forecast.wind_speed_kmh:.1f} km/sa"
-            if current_forecast.wind_speed_kmh is not None
-            else "—",
-        )
-        live_cols[3].metric(
-            "Sıradaki yağış",
-            upcoming_rain.time.strftime("%d.%m %H:%M") if upcoming_rain else "Beklenmiyor",
+        render_status_cards(
+            [
+                (
+                    "Sıcaklık",
+                    f"{current_forecast.temperature_c:.1f} °C"
+                    if current_forecast.temperature_c is not None
+                    else "—",
+                ),
+                (
+                    "Yağış olasılığı",
+                    f"%{current_forecast.precipitation_probability_pct:.0f}"
+                    if current_forecast.precipitation_probability_pct is not None
+                    else "—",
+                ),
+                (
+                    "Rüzgâr",
+                    f"{current_forecast.wind_speed_kmh:.1f} km/sa"
+                    if current_forecast.wind_speed_kmh is not None
+                    else "—",
+                ),
+                (
+                    "Sıradaki yağış",
+                    upcoming_rain.time.strftime("%d.%m %H:%M")
+                    if upcoming_rain
+                    else "Beklenmiyor",
+                ),
+            ]
         )
 
     weather_rows = []

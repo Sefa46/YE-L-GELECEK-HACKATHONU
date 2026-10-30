@@ -198,8 +198,9 @@ st.html(
 
         .siper-title-line__description {
             margin-left: 0.55rem;
-            font-size: 0.875rem;
+            font-size: 1rem;
             font-weight: 400;
+            font-style: italic;
             letter-spacing: normal;
             opacity: 0.6;
             vertical-align: baseline;

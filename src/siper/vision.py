@@ -99,7 +99,8 @@ try:
     import open_clip
     import torch
     model_name = "MobileCLIP2-S0" if "MobileCLIP2-S0" in open_clip.list_models() else "MobileCLIP-S2"
-    c_model, c_preprocess = open_clip.create_model_from_pretrained(model_name)
+    tag = "dfndr2b" if model_name == "MobileCLIP2-S0" else "datacompdr"
+    c_model, c_preprocess = open_clip.create_model_from_pretrained(model_name, pretrained=tag)
     tokenizer = open_clip.get_tokenizer(model_name)
     c_model.eval()
 

@@ -769,23 +769,24 @@ tabs = st.tabs(
 )
 
 with tabs[0]:
-    st.html(
-        """
-        <div class="siper-blinking-alert">
-            <div class="siper-blinking-alert__icon">⚠️</div>
-            <div>
-                <div class="siper-blinking-alert__title">
-                    ⚠️ DİKKAT: 1 GÜN SONRA ŞİDDETLİ SAĞANAK VE SEL RİSKİ BEKLENİYOR ⚠️
+    if weather_mode == "Çevrimdışı senaryo":
+        st.html(
+            """
+            <div class="siper-blinking-alert">
+                <div class="siper-blinking-alert__icon">⚠️</div>
+                <div>
+                    <div class="siper-blinking-alert__title">
+                        ⚠️ DİKKAT: 1 GÜN SONRA ŞİDDETLİ SAĞANAK VE SEL RİSKİ BEKLENİYOR ⚠️
+                    </div>
+                    <div class="siper-blinking-alert__desc">
+                        METEOROLOJİK ERKEN UYARI: TRABZON VE KIYI ŞERİDİNDE 24 SAAT SONRA ŞİDDETLİ AFET BOYUTUNDA YAĞIŞ (152 mm) ÖNGÖRÜLMEKTEDİR.<br>
+                        TÜM KRİTİK DRENAJ NOKTALARI, MENFEZLER VE POMPA İSTASYONLARI İÇİN 24 SAAT ÖNCESİ TAŞKIN ÖNLEME PROTOKOLÜ VE SAHA EKİPLERİ TEYAKKUZDA!
+                    </div>
                 </div>
-                <div class="siper-blinking-alert__desc">
-                    METEOROLOJİK ERKEN UYARI: TRABZON VE KIYI ŞERİDİNDE 24 SAAT SONRA ŞİDDETLİ AFET BOYUTUNDA YAĞIŞ (152 mm) ÖNGÖRÜLMEKTEDİR.<br>
-                    TÜM KRİTİK DRENAJ NOKTALARI, MENFEZLER VE POMPA İSTASYONLARI İÇİN 24 SAAT ÖNCESİ TAŞKIN ÖNLEME PROTOKOLÜ VE SAHA EKİPLERİ TEYAKKUZDA!
-                </div>
+                <div class="siper-blinking-alert__icon">⚠️</div>
             </div>
-            <div class="siper-blinking-alert__icon">⚠️</div>
-        </div>
-        """
-    )
+            """
+        )
     rain_end = rain_start + timedelta(hours=len(event.hourly_rain_mm))
 
     st.html(
@@ -1564,22 +1565,23 @@ with tabs[3]:
         )
 
 with tabs[4]:
-    st.html(
-        """
-        <div class="siper-blinking-alert">
-            <div class="siper-blinking-alert__icon">⚠️</div>
-            <div>
-                <div class="siper-blinking-alert__title">
-                    ⚠️ DİKKAT: 1 GÜN SONRA ŞİDDETLİ SAĞANAK VE SEL RİSKİ BEKLENİYOR ⚠️
+    if weather_mode == "Çevrimdışı senaryo":
+        st.html(
+            """
+            <div class="siper-blinking-alert">
+                <div class="siper-blinking-alert__icon">⚠️</div>
+                <div>
+                    <div class="siper-blinking-alert__title">
+                        ⚠️ DİKKAT: 1 GÜN SONRA ŞİDDETLİ SAĞANAK VE SEL RİSKİ BEKLENİYOR ⚠️
+                    </div>
+                    <div class="siper-blinking-alert__desc">
+                        24 SAAT ÖNCESİ KRİTİK SEFERBERLİK PLANI: YAĞIŞ BAŞLAMADAN ÖNCE TÜM KRİTİK NOKTALARA MÜDAHALE EDİLMESİ İÇİN EKİP VE EKİPMANLAR EN YÜKSEK RİSK AZALTIMI SAĞLAYACAK ŞEKİLDE KONUŞLANDIRILMIŞTIR.
+                    </div>
                 </div>
-                <div class="siper-blinking-alert__desc">
-                    24 SAAT ÖNCESİ KRİTİK SEFERBERLİK PLANI: YAĞIŞ BAŞLAMADAN ÖNCE TÜM KRİTİK NOKTALARA MÜDAHALE EDİLMESİ İÇİN EKİP VE EKİPMANLAR EN YÜKSEK RİSK AZALTIMI SAĞLAYACAK ŞEKİLDE KONUŞLANDIRILMIŞTIR.
-                </div>
+                <div class="siper-blinking-alert__icon">⚠️</div>
             </div>
-            <div class="siper-blinking-alert__icon">⚠️</div>
-        </div>
-        """
-    )
+            """
+        )
     st.html('<h2 class="status-heading">Yağış Öncesi Ekip ve Kaynak Operasyon Planı</h2>')
     st.caption(
         f"Seçili meteoroloji modu: **{weather_mode}** · Yağış başlangıcına kadar müdahale için kalan süre: **{planning_deadline} dakika**. "

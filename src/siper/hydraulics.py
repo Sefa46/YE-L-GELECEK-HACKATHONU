@@ -169,23 +169,8 @@ class SwmmHydraulicModel:
             new_block += "\n"
         return text[: match.start(2)] + new_block + text[match.end(2) :]
 
-    def _scenario_text(
-        self, actions: list[Action], green_lid_scenario: bool = False
-    ) -> str:
+    def _scenario_text(self, actions: list[Action]) -> str:
         text = self._base_text
-        if green_lid_scenario:
-            # Yeşil Altyapı / Doğa Tabanlı Çözümler (NbS / LID):
-            # Üst alt havzalarda (SC_I1, SC_I2, SC_I3) %25 geçirimli zemin ve yağmur bahçesi dönüşümü.
-            # Geçirimsiz alan yüzdesi (%Imperv) düşürülerek yüzey akışının kaynağında sızdırılması modellenir.
-            text = self._replace_section_row(
-                text, "SUBCATCHMENTS", "SC_I1", {4: "60"}
-            )
-            text = self._replace_section_row(
-                text, "SUBCATCHMENTS", "SC_I2", {4: "65"}
-            )
-            text = self._replace_section_row(
-                text, "SUBCATCHMENTS", "SC_I3", {4: "55"}
-            )
         for action in sorted(actions, key=lambda item: item.id):
             if action.id in self._XSECTION_UPDATES:
                 link_id, (geom1, geom2) = self._XSECTION_UPDATES[action.id]
@@ -205,19 +190,11 @@ class SwmmHydraulicModel:
                 )
         return text
 
-    def run(
-        self,
-        actions: list[Action] | None = None,
-        green_lid_scenario: bool = False,
-    ) -> SimulationResult:
+    def run(self, actions: list[Action] | None = None) -> SimulationResult:
         actions = actions or []
         self._validate_actions(actions)
         action_ids = sorted(action.id for action in actions)
-        payload = {
-            "model_sha256": self._model_digest,
-            "actions": action_ids,
-            "green_lid": green_lid_scenario,
-        }
+        payload = {"model_sha256": self._model_digest, "actions": action_ids}
         scenario_hash = hashlib.sha256(
             json.dumps(payload, sort_keys=True).encode("utf-8")
         ).hexdigest()[:16]
@@ -234,10 +211,7 @@ class SwmmHydraulicModel:
         with TemporaryDirectory(prefix="siper-swmm-") as temp_dir:
             temp_path = Path(temp_dir)
             scenario_path = temp_path / "scenario.inp"
-            scenario_path.write_text(
-                self._scenario_text(actions, green_lid_scenario=green_lid_scenario),
-                encoding="utf-8",
-            )
+            scenario_path.write_text(self._scenario_text(actions), encoding="utf-8")
             report_path = temp_path / "scenario.rpt"
             output_path = temp_path / "scenario.out"
             with Simulation(

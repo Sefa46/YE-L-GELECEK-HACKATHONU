@@ -32,8 +32,6 @@ def main() -> None:
         "three_upstream_restorations": model.run(
             [action_map["A1"], action_map["A2"], action_map["A3"]]
         ),
-        "green_infrastructure_lid": model.run(green_lid_scenario=True),
-        "combined_grey_green": model.run([action_map["A3"]], green_lid_scenario=True),
     }
     payload = {name: summarize(result) for name, result in scenarios.items()}
     output_path = root / "data" / "swmm" / "validation_results.json"

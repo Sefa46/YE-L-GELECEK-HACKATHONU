@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "scenario_hash": "5e9bf65b6dbb5594",
+    "scenario_hash": "bbb258351c534848",
     "action_ids": [],
     "overflow_volume_m3": 26.392277,
     "node_flooding_volume_m3": {
@@ -30,7 +30,7 @@
     "model_label": "EPA SWMM 5.2 / SYNTHETIC GEOMETRY / NOT FIELD CALIBRATED"
   },
   "culvert_restored": {
-    "scenario_hash": "86275b3d0a769328",
+    "scenario_hash": "a5ade0626bcec844",
     "action_ids": [
       "A3"
     ],
@@ -62,7 +62,7 @@
     "model_label": "EPA SWMM 5.2 / SYNTHETIC GEOMETRY / NOT FIELD CALIBRATED"
   },
   "three_upstream_restorations": {
-    "scenario_hash": "16a033b397efbcab",
+    "scenario_hash": "58174556eb384cec",
     "action_ids": [
       "A1",
       "A2",
@@ -90,6 +90,68 @@
       "O1": 0.222042
     },
     "continuity_error_pct": -1.013256,
+    "engine_version": "5.2.4",
+    "flow_units": "LPS",
+    "source": "hydraulic_simulation",
+    "model_label": "EPA SWMM 5.2 / SYNTHETIC GEOMETRY / NOT FIELD CALIBRATED"
+  },
+  "green_infrastructure_lid": {
+    "scenario_hash": "60c7b61c8e86b040",
+    "action_ids": [],
+    "overflow_volume_m3": 6.767226,
+    "node_flooding_volume_m3": {
+      "I1": 0.0,
+      "I2": 0.0,
+      "I3": 0.0,
+      "C1": 6.767226,
+      "P1": 0.0,
+      "CH1": 0.0,
+      "S1": 0.0,
+      "O1": 0.0
+    },
+    "max_node_depth_m": {
+      "I1": 0.210335,
+      "I2": 0.226333,
+      "I3": 0.170191,
+      "C1": 0.65,
+      "P1": 0.350352,
+      "CH1": 0.14631,
+      "S1": 0.199998,
+      "O1": 0.193474
+    },
+    "continuity_error_pct": -1.261932,
+    "engine_version": "5.2.4",
+    "flow_units": "LPS",
+    "source": "hydraulic_simulation",
+    "model_label": "EPA SWMM 5.2 / SYNTHETIC GEOMETRY / NOT FIELD CALIBRATED"
+  },
+  "combined_grey_green": {
+    "scenario_hash": "1421b2292005844e",
+    "action_ids": [
+      "A3"
+    ],
+    "overflow_volume_m3": 0.0,
+    "node_flooding_volume_m3": {
+      "I1": 0.0,
+      "I2": 0.0,
+      "I3": 0.0,
+      "C1": 0.0,
+      "P1": 0.0,
+      "CH1": 0.0,
+      "S1": 0.0,
+      "O1": 0.0
+    },
+    "max_node_depth_m": {
+      "I1": 0.193652,
+      "I2": 0.200071,
+      "I3": 0.170178,
+      "C1": 0.262395,
+      "P1": 0.380742,
+      "CH1": 0.150004,
+      "S1": 0.200932,
+      "O1": 0.200794
+    },
+    "continuity_error_pct": -0.944542,
     "engine_version": "5.2.4",
     "flow_units": "LPS",
     "source": "hydraulic_simulation",

@@ -61,3 +61,12 @@ def test_swmm_unsupported_action_is_not_silently_applied(swmm_model, actions):
     action_map = {action.id: action for action in actions}
     with pytest.raises(UnsupportedSwmmActionError, match="A6"):
         swmm_model.run([action_map["A6"]])
+
+
+def test_swmm_green_lid_scenario_reduces_runoff(swmm_model):
+    baseline = swmm_model.run()
+    green_lid = swmm_model.run(green_lid_scenario=True)
+    assert green_lid.overflow_volume_m3 is not None
+    assert green_lid.overflow_volume_m3 < baseline.overflow_volume_m3
+    assert abs(green_lid.continuity_error_pct or 0) < 5
+
